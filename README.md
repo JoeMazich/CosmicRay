@@ -1,5 +1,5 @@
 # CosmicRay
 
 TODO:
-Plot Histogram,
-Plot nldr data
+Subplots for animation
+fix time for 1D graph
