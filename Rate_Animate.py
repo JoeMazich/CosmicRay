@@ -33,7 +33,7 @@ default_sensor = 1620
 #early_time = 100000 #times you want to look between
 #late_time  = 240000
 
-bounds = [-1, -.5, .5, 1] #Set the bounds for the color map
+bounds = [-3, -.5, .5, 3] #Set the bounds for the color map
 
 wspace = 1 #space between the subplots horizontally
 hspace = .5 #space between the subplots vertically
@@ -121,8 +121,8 @@ else:
     minutes = int(temp[1])
     seconds = float(temp[2])
 
-    early_time = (hours - 1) * 10000 + minutes * 100
-    late_time = (hours + 1) * 10000 + minutes * 100
+    early_time = (hours - 1) * 10000 + (int((minutes-30)/10) * 10) * 100
+    late_time = (hours + 1) * 10000 + (int(minutes/10) * 10) * 100
     print("Time is: " + str(early_time) + " to " + str(late_time))
     print()
 
@@ -133,7 +133,7 @@ debug_count = 0
 for line in file:
     columns = line.split()
 
-    if (int(columns[1]) > early_time and int(columns[1]) < late_time):
+    if (int(columns[1]) >= early_time and int(columns[1]) <= late_time):
         if (not take_out_dontuse or int(columns[5]) == 0):
             if(not take_out_warn or int(columns[6]) == 0):
                 debug_count += 1
@@ -146,6 +146,7 @@ for line in file:
                 s_warn.append(int(columns[6]))
                 s_quality.append(int(columns[7]))
 
+print()
 print("Found " + str(debug_count) + " data points for sensors")
 
 file.close()
@@ -164,7 +165,7 @@ for line in file:
     seconds = float(temp[2])
     time = hours*10000 + minutes*100 + seconds
 
-    if((time-1000) > early_time and time < late_time):
+    if(time >= early_time and time <= late_time):
         debug_count += 1
         l_date.append(columns[0])
         l_time.append(columns[1])
@@ -636,6 +637,7 @@ def init():
     lp_time_counter7.set_data([], [])
     lp_time_counter8.set_data([], [])
     lp_time_counter9.set_data([], [])
+    '''
     lp_time_counter10.set_data([], [])
     lp_time_counter11.set_data([], [])
     lp_time_counter12.set_data([], [])
@@ -652,6 +654,7 @@ def init():
     lp_time_counter23.set_data([], [])
     lp_time_counter24.set_data([], [])
     lp_time_counter25.set_data([], [])
+    '''
     sp_sensor_readings.set_offsets([[], []])
     sp_lightning_readings.set_offsets([[], []])
     return listplots
@@ -672,6 +675,7 @@ def update(frame):
     lp_time_counter7.set_data(x, y)
     lp_time_counter8.set_data(x, y)
     lp_time_counter9.set_data(x, y)
+    '''
     lp_time_counter10.set_data(x, y)
     lp_time_counter11.set_data(x, y)
     lp_time_counter12.set_data(x, y)
@@ -688,6 +692,7 @@ def update(frame):
     lp_time_counter23.set_data(x, y)
     lp_time_counter24.set_data(x, y)
     lp_time_counter25.set_data(x, y)
+    '''
 
     sp_sensor_readings.set_offsets(sensor_data_place[frame])
     sp_lightning_readings.set_offsets(lighting_data_place[frame])
@@ -716,8 +721,8 @@ norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
 gs1 = fig.add_gridspec(5, 3, left=0.08, right=0.48, top=.92, bottom=.08, wspace=1, hspace=0.5)
 
-plt.rc('xtick', labelsize = 7)
-plt.rc('ytick', labelsize = 7)
+plt.rc('xtick', labelsize = 6)
+plt.rc('ytick', labelsize = 6)
 
 print(" Sensors") #debug
 j_ax1 = fig.add_subplot(gs1[:3, :3]) #setting subplot location
@@ -736,6 +741,8 @@ j_ax2.grid(True)
 j_ax2.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 j_ax2.set_ylim(-250,250)
 #j_ax2.set_xticks((0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24))
+j_ax2.set_ylabel("Peak Current")
+j_ax2.set_xlabel("Time")
 j_ax2.set_yticks((-250, -200, -150, -100, -50, 0, 50, 100, 150, 200, 250))
 sp_lightning_level = j_ax2.scatter(l_time_per_hour, l_peakcurrent, c='purple', s=size_of_lightning/2, marker='+')   #input np.arrays of lighting data
 lp_time_counter, = j_ax2.plot([], [], lw=1, c='blue') #this is for iteratoring along the time on the bottom graph
@@ -744,9 +751,9 @@ lp_TGF_NLDN_1 = j_ax2.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[-250,250],lw=
 lp_TGF_NLDN_2 = j_ax2.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[-250,250],lw=1, c='orange')
 
 print(" Histos") #debug
-gs2 = fig.add_gridspec(5, 5, left=0.53, right=0.98, wspace=0.3, hspace=0.3)
+gs2 = fig.add_gridspec(3, 3, left=0.53, right=0.98, wspace=0.3, hspace=0.3)
 
-ax1 = fig.add_subplot(gs2[1,1])
+ax1 = fig.add_subplot(gs2[0,0])
 ax1.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax1.set_ylim(700,760)
 ax1.set_xticks([])
@@ -758,7 +765,7 @@ lp_TGF_0_1 = ax1.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_1 = ax1.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_1 = ax1.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
-ax2 = fig.add_subplot(gs2[1,2])
+ax2 = fig.add_subplot(gs2[0,1])
 ax2.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax2.set_ylim(700,760)
 ax2.set_xticks([])
@@ -770,7 +777,7 @@ lp_TGF_0_2 = ax2.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_2 = ax2.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_2 = ax2.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
-ax3 = fig.add_subplot(gs2[1,3])
+ax3 = fig.add_subplot(gs2[0,2])
 ax3.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax3.set_ylim(700,760)
 ax3.set_xticks([])
@@ -782,7 +789,7 @@ lp_TGF_0_3 = ax3.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_3 = ax3.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_3 = ax3.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
-ax4 = fig.add_subplot(gs2[2,1])
+ax4 = fig.add_subplot(gs2[1,0])
 ax4.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax4.set_ylim(700,760)
 ax4.set_xticks([])
@@ -794,7 +801,7 @@ lp_TGF_0_4 = ax4.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_4 = ax4.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_4 = ax4.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
-ax5 = fig.add_subplot(gs2[2,2])
+ax5 = fig.add_subplot(gs2[1,1])
 ax5.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax5.set_ylim(700,760)
 ax5.set_xticks([])
@@ -806,7 +813,7 @@ lp_TGF_0_5 = ax5.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_5 = ax5.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_5 = ax5.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
-ax6 = fig.add_subplot(gs2[2,3])
+ax6 = fig.add_subplot(gs2[1,2])
 ax6.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax6.set_ylim(700,760)
 ax6.set_xticks([])
@@ -818,7 +825,7 @@ lp_TGF_0_6 = ax6.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_6 = ax6.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_6 = ax6.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
-ax7 = fig.add_subplot(gs2[3,1])
+ax7 = fig.add_subplot(gs2[2,0])
 ax7.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax7.set_ylim(700,760)
 ax7.set_xticks([])
@@ -830,7 +837,7 @@ lp_TGF_0_7 = ax7.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_7 = ax7.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_7 = ax7.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
-ax8 = fig.add_subplot(gs2[3,2])
+ax8 = fig.add_subplot(gs2[2,1])
 ax8.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax8.set_ylim(700,760)
 ax8.set_xticks([])
@@ -842,7 +849,7 @@ lp_TGF_0_8 = ax8.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_8 = ax8.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_8 = ax8.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
-ax9 = fig.add_subplot(gs2[3,3])
+ax9 = fig.add_subplot(gs2[2,2])
 ax9.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax9.set_ylim(700,760)
 ax9.set_xticks([])
@@ -854,6 +861,7 @@ lp_TGF_0_9 = ax9.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='
 lp_TGF_1_9 = ax9.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_9 = ax9.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
 
+'''
 ax10 = fig.add_subplot(gs2[0,0])
 ax10.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax10.set_ylim(700,760)
@@ -1040,8 +1048,10 @@ lp_time_counter25, = ax25.plot([], [], lw=1, c='blue')
 lp_TGF_0_25 = ax25.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_1_25 = ax25.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
 lp_TGF_2_25 = ax25.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+'''
 
-listplots = [sp_sensor_readings, sp_lightning_readings, lp_time_counter, lp_time_counter1, lp_time_counter2, lp_time_counter3, lp_time_counter4, lp_time_counter5, lp_time_counter6, lp_time_counter7, lp_time_counter8, lp_time_counter9, lp_time_counter10, lp_time_counter11, lp_time_counter12, lp_time_counter13, lp_time_counter14, lp_time_counter15, lp_time_counter16, lp_time_counter17, lp_time_counter18, lp_time_counter19, lp_time_counter20, lp_time_counter21, lp_time_counter22, lp_time_counter23, lp_time_counter24, lp_time_counter25]
+listplots = [sp_sensor_readings, sp_lightning_readings, lp_time_counter, lp_time_counter1, lp_time_counter2, lp_time_counter3, lp_time_counter4, lp_time_counter5, lp_time_counter6, lp_time_counter7, lp_time_counter8, lp_time_counter9]#, lp_time_counter10, lp_time_counter11, lp_time_counter12, lp_time_counter13, lp_time_counter14, lp_time_counter15, lp_time_counter16, lp_time_counter17, lp_time_counter18, lp_time_counter19, lp_time_counter20, lp_time_counter21, lp_time_counter22, lp_time_counter23, lp_time_counter24, lp_time_counter25]
+
 
 print(" Animation")
 anim = animation.FuncAnimation(fig, update, init_func=init, interval=anispeed, blit=True, repeat=True, frames=len(sensor_data_place))
