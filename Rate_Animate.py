@@ -23,6 +23,7 @@ animation.rcParams["animation.writer"] = "ffmpeg"
 #   -define everything as a proper function
 #   -better size for histos                                     DONE
 #   -check times (weird differences that have 141 times vs 144)
+#   -are the percent changes correct?
 
 #------------------------------------------|Config|------------------------------------------#
 
@@ -121,7 +122,7 @@ else:
     minutes = int(temp[1])
     seconds = float(temp[2])
 
-    early_time = (hours - 1) * 10000 + (int((minutes-30)/10) * 10) * 100
+    early_time = (hours - 2) * 10000 + (int((minutes)/10) * 10) * 100
     late_time = (hours + 1) * 10000 + (int(minutes/10) * 10) * 100
     print("Time is: " + str(early_time) + " to " + str(late_time))
     print()
@@ -215,6 +216,8 @@ for i in range(len(s_hhmmss) - 1):
         times.append(s_hhmmss[i + 1])
 
 print("Done " + str(len(times)) + " times")
+
+
 
 #-----------------------------------------------Finding-the-x,y-for-each-sensor--------------------------------------------------
 s_datax = []
@@ -600,6 +603,7 @@ for time in TGF_time:
 
 TGF_fixed_time.append(None)
 TGF_fixed_time.append(None)
+TGF_fixed_time.append(None)
 #--------------------------------------------Putting-times-in-easy-to-read-matrices--------------------------------------------
 sensor_data_place = []
 sensor_data_level = []
@@ -757,7 +761,6 @@ ax1 = fig.add_subplot(gs2[0,0])
 ax1.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax1.set_ylim(700,760)
 ax1.set_xticks([])
-ax1.set_yticks([])
 ax1.plot(dtime1, dlv0rate1, lw=1, c='green')
 ax1.set_title(TL, fontsize=6)
 lp_time_counter1, = ax1.plot([], [], lw=1, c='blue')
@@ -793,7 +796,6 @@ ax4 = fig.add_subplot(gs2[1,0])
 ax4.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax4.set_ylim(700,760)
 ax4.set_xticks([])
-ax4.set_yticks([])
 ax4.plot(dtime4, dlv0rate4, lw=1, c='green')
 ax4.set_title(ML, fontsize=6)
 lp_time_counter4, = ax4.plot([], [], lw=1, c='blue')
@@ -828,8 +830,6 @@ lp_TGF_2_6 = ax6.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='
 ax7 = fig.add_subplot(gs2[2,0])
 ax7.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax7.set_ylim(700,760)
-ax7.set_xticks([])
-ax7.set_yticks([])
 ax7.plot(dtime7, dlv0rate7, lw=1, c='green')
 ax7.set_title(BL, fontsize=6)
 lp_time_counter7, = ax7.plot([], [], lw=1, c='blue')
@@ -840,7 +840,6 @@ lp_TGF_2_7 = ax7.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='
 ax8 = fig.add_subplot(gs2[2,1])
 ax8.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax8.set_ylim(700,760)
-ax8.set_xticks([])
 ax8.set_yticks([])
 ax8.plot(dtime8, dlv0rate8, lw=1, c='green')
 ax8.set_title(BM, fontsize=6)
@@ -852,7 +851,6 @@ lp_TGF_2_8 = ax8.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='
 ax9 = fig.add_subplot(gs2[2,2])
 ax9.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
 ax9.set_ylim(700,760)
-ax9.set_xticks([])
 ax9.set_yticks([])
 ax9.plot(dtime9, dlv0rate9, lw=1, c='green')
 ax9.set_title(BR, fontsize=6)
