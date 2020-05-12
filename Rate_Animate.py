@@ -134,18 +134,18 @@ debug_count = 0
 for line in file:
     columns = line.split()
 
-    if (int(columns[1]) >= early_time and int(columns[1]) <= late_time):
-        if (not take_out_dontuse or int(columns[5]) == 0):
-            if(not take_out_warn or int(columns[6]) == 0):
-                debug_count += 1
-                s_yymmdd.append(int(columns[0]))
-                s_hhmmss.append(int(columns[1]))
-                s_hitdetnum.append(int(columns[2]))
-                s_lv0rate.append(float(columns[3]))
-                s_lv1rate.append(float(columns[4]))
-                s_dontuse.append(int(columns[5]))
-                s_warn.append(int(columns[6]))
-                s_quality.append(int(columns[7]))
+    #if (int(columns[1]) >= early_time and int(columns[1]) <= late_time):
+    if (not take_out_dontuse or int(columns[5]) == 0):
+        if(not take_out_warn or int(columns[6]) == 0):
+            debug_count += 1
+            s_yymmdd.append(int(columns[0]))
+            s_hhmmss.append(int(columns[1]))
+            s_hitdetnum.append(int(columns[2]))
+            s_lv0rate.append(float(columns[3]))
+            s_lv1rate.append(float(columns[4]))
+            s_dontuse.append(int(columns[5]))
+            s_warn.append(int(columns[6]))
+            s_quality.append(int(columns[7]))
 
 print()
 print("Found " + str(debug_count) + " data points for sensors")
@@ -366,6 +366,7 @@ dtime8 = []
 dlv0rate9 = []
 dtime9 = []
 
+'''
 dlv0rate10 = []
 dtime10 = []
 
@@ -413,7 +414,7 @@ dtime24 = []
 
 dlv0rate25 = []
 dtime25 = []
-
+'''
 for i in range(len(s_hitdetnum)):
 
     if TL == s_hitdetnum[i]:
@@ -479,6 +480,7 @@ for i in range(len(s_hitdetnum)):
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
         dtime9.append(hours + minutes / 60 + seconds / 360)
 
+'''
     if ULL == s_hitdetnum[i]:
         dlv0rate10.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
@@ -590,7 +592,10 @@ for i in range(len(s_hitdetnum)):
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
         dtime25.append(hours + minutes / 60 + seconds / 360)
+'''
 
+min_lv0_rate = min(dlv0rate5) - 20
+max_lv0_rate = max(dlv0rate5) + 20
 #-------------------------------------------------------Fixing-TGF-times--------------------------------------------------------
 TGF_fixed_time = []
 
@@ -665,7 +670,7 @@ def init():
 
 def update(frame):
 
-    x = frame * 1/6 + int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360)
+    x = int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360) + (frame * 1/6) % 3
     y = np.linspace(-300, 1000, 250) #time counter function
 
     lp_time_counter.set_data(x, y)
@@ -758,106 +763,106 @@ print(" Histos") #debug
 gs2 = fig.add_gridspec(3, 3, left=0.53, right=0.98, wspace=0.3, hspace=0.3)
 
 ax1 = fig.add_subplot(gs2[0,0])
-ax1.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax1.set_ylim(700,760)
+ax1.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax1.set_ylim(min_lv0_rate,max_lv0_rate)
 ax1.set_xticks([])
 ax1.plot(dtime1, dlv0rate1, lw=1, c='green')
 ax1.set_title(TL, fontsize=6)
 lp_time_counter1, = ax1.plot([], [], lw=1, c='blue')
-lp_TGF_0_1 = ax1.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_1 = ax1.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_1 = ax1.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_1 = ax1.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_1 = ax1.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_1 = ax1.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 ax2 = fig.add_subplot(gs2[0,1])
-ax2.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax2.set_ylim(700,760)
+ax2.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax2.set_ylim(min_lv0_rate,max_lv0_rate)
 ax2.set_xticks([])
 ax2.set_yticks([])
 ax2.plot(dtime2, dlv0rate2, lw=1, c='green')
 ax2.set_title(TM, fontsize=6)
 lp_time_counter2, = ax2.plot([], [], lw=1, c='blue')
-lp_TGF_0_2 = ax2.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_2 = ax2.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_2 = ax2.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_2 = ax2.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_2 = ax2.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_2 = ax2.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 ax3 = fig.add_subplot(gs2[0,2])
-ax3.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax3.set_ylim(700,760)
+ax3.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax3.set_ylim(min_lv0_rate,max_lv0_rate)
 ax3.set_xticks([])
 ax3.set_yticks([])
 ax3.plot(dtime3, dlv0rate3, lw=1, c='green')
 ax3.set_title(TR, fontsize=6)
 lp_time_counter3, = ax3.plot([], [], lw=1, c='blue')
-lp_TGF_0_3 = ax3.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_3 = ax3.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_3 = ax3.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_3 = ax3.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_3 = ax3.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_3 = ax3.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 ax4 = fig.add_subplot(gs2[1,0])
-ax4.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax4.set_ylim(700,760)
+ax4.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax4.set_ylim(min_lv0_rate,max_lv0_rate)
 ax4.set_xticks([])
 ax4.plot(dtime4, dlv0rate4, lw=1, c='green')
 ax4.set_title(ML, fontsize=6)
 lp_time_counter4, = ax4.plot([], [], lw=1, c='blue')
-lp_TGF_0_4 = ax4.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_4 = ax4.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_4 = ax4.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_4 = ax4.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_4 = ax4.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_4 = ax4.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 ax5 = fig.add_subplot(gs2[1,1])
-ax5.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax5.set_ylim(700,760)
+ax5.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax5.set_ylim(min_lv0_rate,max_lv0_rate)
 ax5.set_xticks([])
 ax5.set_yticks([])
 ax5.plot(dtime5, dlv0rate5, lw=1, c='green')
 ax5.set_title(int_det, fontsize=6)
 lp_time_counter5, = ax5.plot([], [], lw=1, c='blue')
-lp_TGF_0_5 = ax5.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_5 = ax5.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_5 = ax5.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_5 = ax5.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_5 = ax5.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_5 = ax5.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 ax6 = fig.add_subplot(gs2[1,2])
-ax6.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax6.set_ylim(700,760)
+ax6.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax6.set_ylim(min_lv0_rate,max_lv0_rate)
 ax6.set_xticks([])
 ax6.set_yticks([])
 ax6.plot(dtime6, dlv0rate6, lw=1, c='green')
 ax6.set_title(MR, fontsize=6)
 lp_time_counter6, = ax6.plot([], [], lw=1, c='blue')
-lp_TGF_0_6 = ax6.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_6 = ax6.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_6 = ax6.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_6 = ax6.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_6 = ax6.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_6 = ax6.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 ax7 = fig.add_subplot(gs2[2,0])
-ax7.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax7.set_ylim(700,760)
+ax7.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax7.set_ylim(min_lv0_rate,max_lv0_rate)
 ax7.plot(dtime7, dlv0rate7, lw=1, c='green')
 ax7.set_title(BL, fontsize=6)
 lp_time_counter7, = ax7.plot([], [], lw=1, c='blue')
-lp_TGF_0_7 = ax7.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_7 = ax7.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_7 = ax7.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_7 = ax7.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_7 = ax7.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_7 = ax7.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 ax8 = fig.add_subplot(gs2[2,1])
-ax8.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax8.set_ylim(700,760)
+ax8.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax8.set_ylim(min_lv0_rate,max_lv0_rate)
 ax8.set_yticks([])
 ax8.plot(dtime8, dlv0rate8, lw=1, c='green')
 ax8.set_title(BM, fontsize=6)
 lp_time_counter8, = ax8.plot([], [], lw=1, c='blue')
-lp_TGF_0_8 = ax8.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_8 = ax8.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_8 = ax8.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_8 = ax8.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_8 = ax8.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_8 = ax8.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 ax9 = fig.add_subplot(gs2[2,2])
-ax9.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
-ax9.set_ylim(700,760)
+ax9.set_xlim(0,24)#int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+ax9.set_ylim(min_lv0_rate,max_lv0_rate)
 ax9.set_yticks([])
 ax9.plot(dtime9, dlv0rate9, lw=1, c='green')
 ax9.set_title(BR, fontsize=6)
 lp_time_counter9, = ax9.plot([], [], lw=1, c='blue')
-lp_TGF_0_9 = ax9.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_1_9 = ax9.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[700,760],lw=1, c='orange', alpha=.5)
-lp_TGF_2_9 = ax9.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[700,760],lw=1, c='orange', alpha=.5)
+lp_TGF_0_9 = ax9.plot([TGF_fixed_time[0], TGF_fixed_time[0]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_1_9 = ax9.plot([TGF_fixed_time[1], TGF_fixed_time[1]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
+lp_TGF_2_9 = ax9.plot([TGF_fixed_time[2], TGF_fixed_time[2]],[min_lv0_rate,max_lv0_rate],lw=1, c='orange', alpha=.5)
 
 '''
 ax10 = fig.add_subplot(gs2[0,0])
