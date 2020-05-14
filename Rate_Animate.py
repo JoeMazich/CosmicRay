@@ -191,15 +191,15 @@ print("Getting Det number")
 
 if (len(TGF_center_sensor) > 0):
     if all_day:
-        int_det = default_sensor
-        print("All day?")
+        int_det = int(TGF_center_sensor[TGF_number])
+        print("All day? Well... I set it to: " + str(TGF_center_sensor[TGF_number]))
     else:
         int_det = int(TGF_center_sensor[TGF_number])
-        for i in range(len(tasdnum[0])):
-            if (int(TGF_center_sensor[TGF_number]) == int(tasdnum[0][i])):
-                TGF_x.append(tasdx[i])
-                TGF_y.append(tasdy[i])
-                print("Got it")
+    for i in range(len(tasdnum[0])):
+        if (int(TGF_center_sensor[TGF_number]) == int(tasdnum[0][i])):
+            TGF_x.append(tasdx[i])
+            TGF_y.append(tasdy[i])
+            print("Got it")
 else:
     int_det = default_sensor
     print("No TGF event?")
@@ -670,7 +670,7 @@ def init():
 
 def update(frame):
 
-    x = int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360) + (frame * 1/6) % 3
+    x = int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360) + (frame * 1/6) % ((late_time - early_time)/10000)
     y = np.linspace(-300, 1000, 250) #time counter function
 
     lp_time_counter.set_data(x, y)
