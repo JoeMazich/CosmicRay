@@ -66,6 +66,9 @@ s_lv1rate = []
 s_warn = []
 s_dontuse = []
 s_quality = []
+lv0rate_time_sensitive = []
+hitdetnum_time_sensitive = []
+hhmmss_time_sensitive = []
 
 #for lighting
 l_date = []
@@ -124,8 +127,8 @@ else:
 
     early_time = (hours - 2) * 10000 + (int((minutes)/10) * 10) * 100
     late_time = (hours + 1) * 10000 + (int(minutes/10) * 10) * 100
-    print("Time is: " + str(early_time) + " to " + str(late_time))
-    print()
+print("Time is: " + str(early_time) + " to " + str(late_time))
+print()
 
 file = open(dector_filename,'r')
 
@@ -146,6 +149,11 @@ for line in file:
             s_dontuse.append(int(columns[5]))
             s_warn.append(int(columns[6]))
             s_quality.append(int(columns[7]))
+
+            if (int(columns[1]) >= early_time and int(columns[1]) <= late_time):
+                lv0rate_time_sensitive.append(float(columns[3]))
+                hitdetnum_time_sensitive.append(int(columns[2]))
+                hhmmss_time_sensitive.append(int(columns[1]))
 
 print()
 print("Found " + str(debug_count) + " data points for sensors")
@@ -206,14 +214,14 @@ else:
 
 #-----------------------------------------------------Easy-use-for-time--------------------------------------------------------
 #will create a list called "times" that holds a unique values for each time
-times = [s_hhmmss[0]]
+times = [hhmmss_time_sensitive[0]]
 
 print()
 print("Making easy time table")
 
-for i in range(len(s_hhmmss) - 1):
-    if (s_hhmmss[i] != s_hhmmss[i + 1]):
-        times.append(s_hhmmss[i + 1])
+for i in range(len(hhmmss_time_sensitive) - 1):
+    if (hhmmss_time_sensitive[i] != hhmmss_time_sensitive[i + 1]):
+        times.append(hhmmss_time_sensitive[i + 1])
 
 print("Done " + str(len(times)) + " times")
 
@@ -229,9 +237,9 @@ flag = 0
 print()
 print("Making det numbers plottable coordinates")
 
-for i in range(len(s_hitdetnum)):
+for i in range(len(hitdetnum_time_sensitive)):
     for j in range(len(tasdnum[0])):
-        if (s_hitdetnum[i] == tasdnum[0][j]):
+        if (hitdetnum_time_sensitive[i] == tasdnum[0][j]):
             s_datax.append(tasdx[j])
             s_datay.append(tasdy[j])
             flag = 1
@@ -289,10 +297,10 @@ debug_count = 0
 print()
 print("Finding rates of change")
 
-for i in range(len(s_hitdetnum)):
-    for j in range(i + 1, len(s_hitdetnum)):
-        if (s_hitdetnum[i] == s_hitdetnum[j]):
-            sensor_data_level_holder.append((s_lv0rate[j] - s_lv0rate[i]) * 100 / s_lv0rate[i])
+for i in range(len(hitdetnum_time_sensitive)):
+    for j in range(i + 1, len(hitdetnum_time_sensitive)):
+        if (hitdetnum_time_sensitive[i] == hitdetnum_time_sensitive[j]):
+            sensor_data_level_holder.append((lv0rate_time_sensitive[j] - lv0rate_time_sensitive[i]) * 100 / lv0rate_time_sensitive[i])
             debug_count += 1
             break
 
@@ -415,7 +423,7 @@ dtime24 = []
 dlv0rate25 = []
 dtime25 = []
 '''
-for i in range(len(s_hitdetnum)):
+for i in range(len(s_lv0rate)):
 
     if TL == s_hitdetnum[i]:
         dlv0rate1.append(s_lv0rate[i])
@@ -592,8 +600,8 @@ for i in range(len(s_hitdetnum)):
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
         dtime25.append(hours + minutes / 60 + seconds / 360)
-'''
 
+'''
 min_lv0_rate = min(dlv0rate5) - 20
 max_lv0_rate = max(dlv0rate5) + 20
 #-------------------------------------------------------Fixing-TGF-times--------------------------------------------------------
@@ -618,8 +626,8 @@ hit_c = []
 print("Making data readable...")
 
 for i in range(len(times)):
-    for j in range(len(s_hhmmss)):
-        if (int(s_hhmmss[j]) == int(times[i])):
+    for j in range(len(hhmmss_time_sensitive)):
+        if (int(hhmmss_time_sensitive[j]) == int(times[i])):
             hit_x_y.append([s_datax[j], s_datay[j]])
             hit_c.append(sensor_data_level_holder[j])
 
