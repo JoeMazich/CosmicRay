@@ -127,6 +127,14 @@ else:
 
     early_time = (hours - 2) * 10000 + (int((minutes)/10) * 10) * 100
     late_time = (hours + 1) * 10000 + (int(minutes/10) * 10) * 100
+
+diff = 0
+if (early_time < 0):
+    diff = -early_time
+    early_time = 0
+if (late_time > 235000):
+    diff = late_time
+    late_time = 235000
 print("Time is: " + str(early_time) + " to " + str(late_time))
 print()
 
@@ -678,7 +686,7 @@ def init():
 
 def update(frame):
 
-    x = int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360) + (frame * 1/6) % ((late_time - early_time)/10000)
+    x = int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360) + (frame * 1/6) % (int(late_time/10000) - int(early_time/10000) + diff)
     y = np.linspace(-300, 1000, 250) #time counter function
 
     lp_time_counter.set_data(x, y)
