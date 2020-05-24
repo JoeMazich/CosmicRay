@@ -1,5 +1,6 @@
 import geopy as gp
 import numpy as np
+import math
 
 from scipy.spatial.distance import cdist, euclidean
 
@@ -84,6 +85,57 @@ def geometric_median(X, eps=1e-5):
 
         y = y1
 
+def Surrounding_Dets(TASD):
+    TL = TASD - 99
+    TM = TASD + 1
+    TR = TASD + 101
+    ML = TASD - 100
+    MR = TASD + 100
+    BL = TASD - 101
+    BM = TASD - 1
+    BR = TASD + 99
+
+    return [TL, TM, TR, ML, TASD, MR, BL, BM, BR]
+
+def Find_Rate(date, TASD, early_time, late_time):
+
+    dector_filename = "DataDates/" + str(date) + "/L0L1.txt"
+
+    found_early = False
+
+    early_lv0_rate = None
+    late_lv0_rate = None
+
+    file = open(dector_filename,'r')
+    for line in file:
+        columns = line.split()
+
+        if (int(columns[1]) == early_time and int(columns[2]) == TASD):
+            early_lv0_rate = float(columns[3])
+            found_early = True
+            if (int(columns[5]) != 0):
+                print("Warning, det " + str(TASD) + "early time for rate is don't use")
+            if (int(columns[6]) != 0):
+                print("Warning, det " + str(TASD) + "early time for rate is warn")
+
+        if (found_early and int(columns[1]) == late_time and int(columns[2]) == TASD):
+            late_lv0_rate = float(columns[3])
+            if (int(columns[5]) != 0):
+                print("Warning, det " + str(TASD) + "late time for rate is don't use")
+            if (int(columns[6]) != 0):
+                print("Warning, det " + str(TASD) + "late time for rate is warn")
+            break;
+
+    file.close()
+
+    if (early_lv0_rate == None and late_lv0_rate == None):
+        return None
+    elif (early_lv0_rate == None):
+        return (math.inf)
+    elif (late_lv0_rate == None):
+        return (-math.inf)
+
+    return ((late_lv0_rate - early_lv0_rate) / early_lv0_rate * 100)
 
 def main():
 
@@ -107,5 +159,7 @@ def main():
         NLDN_centers.append(geometric_median(lat_long))
         #remember to iterate the early time by 10 mins
         early_time = add_time(early_time, 1000)
+
+    print(Find_Rate(150915, 1423, 140000, 141000))
 
 main()
