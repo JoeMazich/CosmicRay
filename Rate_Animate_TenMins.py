@@ -13,6 +13,8 @@ from taTools import *
 from IPython.display import HTML
 animation.rcParams["animation.writer"] = "ffmpeg"
 
+#NLDN inbetween the ten mins
+
 # TODO:
 #   -put colorbar in correct area                               DONE
 #   -fix colorbar color, vmin, and vmax                         DONE
@@ -34,7 +36,7 @@ default_sensor = 1620
 #early_time = 100000 #times you want to look between
 #late_time  = 240000
 
-bounds = [-3, -.5, .5, 3] #Set the bounds for the color map
+bounds = [-3, -1, -.5, .5, 1, 3] #Set the bounds for the color map
 
 wspace = 1 #space between the subplots horizontally
 hspace = .5 #space between the subplots vertically
@@ -90,7 +92,7 @@ TGF_center_sensor = []
 print()
 print("Getting Data...")
 
-#open and parse TGR events
+#open and parse TGF events
 file = open("TGF.txt",'r')
 
 debug_count = 0
@@ -195,6 +197,19 @@ print("Found " + str(debug_count) + " data points for lightning")
 
 file.close()
 
+def Time_Table_10():
+
+    times = []
+    time = -10000
+    for j in range(24):
+        time = time + 10000
+        for i in range(6):
+            times.append(time)
+            time = time + 1000
+        time = time - 6000
+
+    return times
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-|-=-=-=-=-=-==-=-=-=-=-=-|-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-+  Set Data as Readable  +-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-|-=-=-=-=-=-==-=-=-=-=-=-|-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-#
@@ -222,6 +237,7 @@ else:
 
 #-----------------------------------------------------Easy-use-for-time--------------------------------------------------------
 #will create a list called "times" that holds a unique values for each time
+'''
 times = [hhmmss_time_sensitive[0]]
 
 print()
@@ -230,6 +246,18 @@ print("Making easy time table")
 for i in range(len(hhmmss_time_sensitive) - 1):
     if (hhmmss_time_sensitive[i] != hhmmss_time_sensitive[i + 1]):
         times.append(hhmmss_time_sensitive[i + 1])
+
+print("Done " + str(len(times)) + " times")
+'''
+time_table = Time_Table_10()
+times = []
+
+print()
+print("Making easy time table")
+
+for time in time_table:
+    if (time >= early_time and time <= late_time):
+        times.append(time)
 
 print("Done " + str(len(times)) + " times")
 
@@ -272,7 +300,7 @@ for i in range(len(l_peakcurrent)):
     hours = int(temp[0])
     minutes = int(temp[1])
     seconds = float(temp[2])
-    l_time_per_hour.append(hours + minutes / 60 + seconds / 360)
+    l_time_per_hour.append(hours + minutes / 60 + seconds / 3600)
     debug_count += 1
 
 print("Fixed " + str(debug_count) + " NLDN time data points")
@@ -287,7 +315,11 @@ print("Making NLDN into plottable coordinates")
 
 for i in range(len(times)):
     for j in range(len(l_time_per_hour)):
-        if (l_time_per_hour[j] <= float(times[i]/10000)):
+        hours = int(times[i] / 10000)
+        minutes = int(times[i] / 100) - (hours * 100)
+        seconds = times[i] - (hours * 10000) - (minutes * 100)
+        time = float(hours + minutes / 60 + seconds / 3600)
+        if (l_time_per_hour[j] <= time + .16666667):
             l_gps = gp.point.Point(l_lat[j], l_long[j], 0)
             lx,ly,lz = gps2cart(l_gps)
             l_data_xy.append([lx, ly])
@@ -301,6 +333,7 @@ print("Made " + str(debug_count) + " lighting placement frames")
 #------------------------------------------Finding-all-the-rates-of-change-for-color-----------------------------------------------
 sensor_data_level_holder = []
 debug_count = 0
+flag = False
 
 print()
 print("Finding rates of change")
@@ -310,7 +343,12 @@ for i in range(len(hitdetnum_time_sensitive)):
         if (hitdetnum_time_sensitive[i] == hitdetnum_time_sensitive[j]):
             sensor_data_level_holder.append((lv0rate_time_sensitive[j] - lv0rate_time_sensitive[i]) * 100 / lv0rate_time_sensitive[i])
             debug_count += 1
+            flag = True
             break
+    if (not flag):
+        sensor_data_level_holder.append(0)
+        debug_count += 1
+    flag = False
 
 extra_null_points = 1000
 
@@ -438,63 +476,63 @@ for i in range(len(s_lv0rate)):
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime1.append(hours + minutes / 60 + seconds / 360)
+        dtime1.append(hours + minutes / 60 + seconds / 3600)
 
     if TM == s_hitdetnum[i]:
         dlv0rate2.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime2.append(hours + minutes / 60 + seconds / 360)
+        dtime2.append(hours + minutes / 60 + seconds / 3600)
 
     if TR == s_hitdetnum[i]:
         dlv0rate3.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime3.append(hours + minutes / 60 + seconds / 360)
+        dtime3.append(hours + minutes / 60 + seconds / 3600)
 
     if ML == s_hitdetnum[i]:
         dlv0rate4.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime4.append(hours + minutes / 60 + seconds / 360)
+        dtime4.append(hours + minutes / 60 + seconds / 3600)
 
     if int_det == s_hitdetnum[i]:
         dlv0rate5.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime5.append(hours + minutes / 60 + seconds / 360)
+        dtime5.append(hours + minutes / 60 + seconds / 3600)
 
     if MR == s_hitdetnum[i]:
         dlv0rate6.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime6.append(hours + minutes / 60 + seconds / 360)
+        dtime6.append(hours + minutes / 60 + seconds / 3600)
 
     if BL == s_hitdetnum[i]:
         dlv0rate7.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime7.append(hours + minutes / 60 + seconds / 360)
+        dtime7.append(hours + minutes / 60 + seconds / 3600)
 
     if BM == s_hitdetnum[i]:
         dlv0rate8.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime8.append(hours + minutes / 60 + seconds / 360)
+        dtime8.append(hours + minutes / 60 + seconds / 3600)
 
     if BR == s_hitdetnum[i]:
         dlv0rate9.append(s_lv0rate[i])
         hours = int(s_hhmmss[i] / 10000)
         minutes = int(s_hhmmss[i] / 100) - (hours * 100)
         seconds = s_hhmmss[i] - (hours * 10000) - (minutes * 100)
-        dtime9.append(hours + minutes / 60 + seconds / 360)
+        dtime9.append(hours + minutes / 60 + seconds / 3600)
 
 '''
     if ULL == s_hitdetnum[i]:
@@ -620,7 +658,7 @@ for time in TGF_time:
     hours = int(temp[0])
     minutes = int(temp[1])
     seconds = float(temp[2])
-    TGF_fixed_time.append(hours + minutes / 60 + seconds / 360)
+    TGF_fixed_time.append(hours + (minutes / 60) + (seconds / 3600))
 
 TGF_fixed_time.append(None)
 TGF_fixed_time.append(None)
@@ -686,7 +724,7 @@ def init():
 
 def update(frame):
 
-    x = int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360) + (frame * 1/6) % (int(late_time/10000) - int(early_time/10000) + diff)
+    x = int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 3600) + (frame * 1/6) % (int(late_time/10000) - int(early_time/10000) + diff)
     y = np.linspace(-300, 1000, 250) #time counter function
 
     lp_time_counter.set_data(x, y)
@@ -741,7 +779,7 @@ else:
     title = "On " +str(date) + " at " + str(TGF_time[TGF_number]) + " | " + str(TGF_center_sensor[TGF_number])
 fig.suptitle(title, fontsize=10)
 
-cmap = mpl.colors.ListedColormap(["blue", "green", "red"])
+cmap = mpl.colors.ListedColormap(["blue", "#00FFFF", "green", "#FFa500", "red"])
 norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
 gs1 = fig.add_gridspec(5, 3, left=0.08, right=0.48, top=.92, bottom=.08, wspace=1, hspace=0.5)
@@ -763,7 +801,7 @@ plt.colorbar(sp_sensor_readings, cmap=cmap, norm=norm)
 print(" NLDN") #debug
 j_ax2 = fig.add_subplot(gs1[3:, :3])
 j_ax2.grid(True)
-j_ax2.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 360), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 360))
+j_ax2.set_xlim(int(early_time/10000) + (int(early_time/100) % 100) / 60 + ((early_time % 100) / 3600), int(late_time/10000) + (int(late_time/100) % 100) / 60 + ((late_time % 100) / 3600))
 j_ax2.set_ylim(-250,250)
 #j_ax2.set_xticks((0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24))
 j_ax2.set_ylabel("Peak Current")
