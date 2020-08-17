@@ -1,11 +1,11 @@
 import geopy as gp
 import numpy as np
-import math
-import os
 
+import matplotlib.colors as mcolors #check if i need this
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+
 
 from datetime import *
 from taTools import *
@@ -16,21 +16,25 @@ animation.rcParams["animation.writer"] = "ffmpeg"
 
 #                             TODO
 #
-# Merge functions
+# set __name__ == __main__ to a function call so I can just call this class somewhere else
 # split2regions returns the Center_Horz and Center_Vert to display
 # debugs for RateCutoff
 # comments on what the outputs of each main function should look like
 # More comments at the bottom of the code
+# Dont need to set sp_lightning_level equal to .scatter, can just do .scatter
+
+#                             IDEAS
+#
+# could have the cutoff look backwards in time by 10 min and in the future by 10 mins
+#
 
 #                             HINTS
 #
-# there is a lot that can be optimized, changed, and made clearer, so please dig in as much as you can to make it as easy to understand and as fast as possible
-# right now, it looks like the Lv0 method is the limiting factor for speed (given reasonable configs and choices) so if you can speed that method up, be my guest
-# If I ever reference a "simple" time or "simple" date, I am referencing times and dates in the HHMMSS or YYMMDD format
-# The FindRates method assumes a point every 10 mins, it is NOT dynamic
+# If I ever reference a "simple" time or "simple" date, I am referencing times and dates in the ###### format
+# The FindRates method assumes a point every 10 mins
 # Detector numbers are always strings (except in the NearDets method)
 # Lv0rates are always floats
-# Dates and times are, unsurprisingly, always datetimes (other than the obvious excpetions with simple dates and simple times for inputs and conversions etc.)
+# Times are, unsurprisingly, always datetimes (other than the obvious excpetions with simple dates and simple times)
 #
 # The L0L1_dict looks like:
 #     VVV    KEY     VVV              VVV    VALUE    VVV
@@ -38,8 +42,7 @@ animation.rcParams["animation.writer"] = "ffmpeg"
 #
 # The NLDN_dict looks like:
 #   VVV  KEY  VVV      VVV   VALUE   VVV
-#  [(Cartx, Carty)] = [time, peak current, C or G]
-#
+#  [(Cartx, Carty)] = [time, peak current]
 #
 # L0L1 data format:                 NLDN data format:
 # Column 0 | date                   Column 0 | date
@@ -47,7 +50,7 @@ animation.rcParams["animation.writer"] = "ffmpeg"
 # Column 2 | detector number        Column 2 | latitude
 # Column 3 | level 0 rate           Column 3 | longitude
 # Column 4 | level 1 rate           Column 4 | peak current
-# Column 5 | dont use flag          Column 5 | type of lighting (C or G)
+# Column 5 | dont use flag          Column 5 | type of lighting
 # Column 6 | warning flag
 # Column 7 | quality
 #
@@ -56,25 +59,25 @@ animation.rcParams["animation.writer"] = "ffmpeg"
 
 
 ONED_RATE_CUTOFF = .5 # the cut off for rates taken into account for the 1D plots (inclusive cutoff, meaning if this is at .5, rates at and below .5 are NOT counted for the one D plots)
-ONED_CLOSEDETS_CUTOFF = 6 # the amount of dets that need to be above the ^ Cutoff around a 5x5 of a DET to count the DET in the 1D plots
+ONED_CLOSEDETS_CUTOFF = 0 # the amount of dets that need to be above the ^ Cutoff around a 5x5 of a DET to count the DET in the 1D plots
 TIME_NLDN_IS_ON = timedelta(hours=1, minutes=30) # this is the amount of time NLDN data will stay on the TASD plot once it pops up (inclusive) (also, add ten mins to get that acutal amount of time it stay up)
 RATE_WARNING = 5 # warn the user about rates above this amount
 
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
 
-ANI_SPEED = 900  #animation speed - lower is faster
+ANI_SPEED = 750  #animation speed - lower is faster
 
-CMAP_COLORS = ['purple', 'blue', 'cyan', 'green', 'orange', 'red', 'maroon'] # set the colors for the 2D map
+CMAP_COLORS = ['purple', 'blue', 'cyan', 'green', 'yellow', 'orange', 'red'] # set the colors for the 2D map
 CMAP_BOUNDS = [-5, -3, -1, -0.5, 0.5, 1, 3, 5] # set the bounds for the colors on the 2D map
-# (Note that if you add any more beyond -5 and 5, you have to change vmin, vmax at sp_sensor_readings definition) (you can make this dynamic with CMAP_BOUNDS[0], CMAP_BOUNDS[len(CMAP_BOUNDS) - 1])
+# (Note that if you add any more beyond -5 and 5, you have to change vmin, vmax at sp_sensor_readings definition)
 
 
-# Constants, i.e. dont change even if you think you don't need them anymore or replaced them in a function with another constant
+
 TEN_MINS = timedelta(minutes=10)
 THREE_HOURS = timedelta(hours=3)
 SIX_HOURS = timedelta(hours=6)
-# some basic init just to make things at the plot generation level (way down at the bottome of the code) a little easier
+
 tasdnum,tasdx,tasdy,tasdz =[],[],[],[]
 tasdxyz(tasdnum,tasdx,tasdy,tasdz)
 
@@ -111,48 +114,15 @@ def Date_D2D(dashed_date):
     day = int(temp[2])
     return date(year, month, day)
 
-# this function takes in a det and returns a dict of dets near by it, im doing this by using the labeling of the dets:
-# for example, to go up one det, you add one to the det num
-# important nots about this is that it will return top leftmost det move right to the top rightmost, then go down
-# one and return that row, etc, till the bottom rightmost
-# additionally, if you do not center it (set centered to false) the det you input will be the top rightmost
-# last thing is that, for even sizes (2, 4, 6, 8, etc) the "center" det will be follow the general idea
-# [ ] [ ] [ ] [ ]  <<<
-# [ ] [O] [X] [ ]  <<<  The dets iwht X's and O's are the "center" dets in this 4x4
-# [ ] [X] [X] [ ]  <<<  but the one with the O is the center det (given that "centered" is true and it is not going based off the top leftmost)
-# [ ] [ ] [ ] [ ]  <<<
-#
-# Oh yeah, almost forgot the GEM of this function: it will output a dict (of course) where the key is the relative coordinates and the value is the det num
-# for instance, look at the 4x4 above. Say that the top, leftmost det num is 1317, the output dict will have (0,0): 1317 as an item.
-# this also means it will have (0,3): 1617 as an item (1617 is three dets to the right of 1317, (0,0) -> (0,3) )
-# this is very useful for when you want to iterate through all of these dets in a controlled fashion:
-# rather than just "for det in dict.values()" (which you tatally can do if you don't care about relativve position)
-# you can do a nested for loop, something like "for n for m in dict.keys" which allows you to pull the det num AND know the relative placement
-# of that det compared to the other dets in the dict (I use this properity in the Create1DPlots method if you want to see an example)
-def NearDets(det_num, size, centered):
+# this function takes in a det and returns dets near by it. I am using the nice 2D ordering of the dets, but
+# if you prefer to use a different geometric function, you can use that, just make sure it reutrns a list of strings of the names of dets
+def NearDets(det_num):
     det_num = int(det_num)
-    dict = {}
+    return [str(det_num - 99), str(det_num + 1), str(det_num + 101), str(det_num - 100), str(det_num + 100), str(det_num - 101), \
+    str(det_num - 1), str(det_num + 99), str(det_num - 198), str(det_num - 98), str(det_num + 2), str(det_num + 102), str(det_num + 202), \
+    str(det_num - 199), str(det_num + 201), str(det_num - 200), str(det_num + 200), str(det_num - 201), str(det_num + 199), str(det_num - 202),\
+    str(det_num - 102), str(det_num - 2), str(det_num + 98), str(det_num + 198)]
 
-    # this is moving the det to the top leftmost section if it was given as a centered det
-    if centered:
-        l = math.floor((size/2) - .5)
-        for i in range(l):
-            det_num -= 99
-
-    for n in range(size):
-        temp_det_num = det_num
-        for m in range(size):
-            dict[(n, m)] = str(temp_det_num).rjust(4, "0")
-            temp_det_num += 100
-        det_num -= 1
-    return dict
-
-# this is, ehhhh
-# the general idea for this function is to split up the dets into 4 seperate regions
-# I use this to get the regions I need for the avging methods (you will see that after I call this down below, I append NW and NE to one N region, making the three regions)
-# its not very dynamic, essentially one step away from just hardcoding the list of dets for each region in, but better that just doing that
-# I am not going to comment much else on this one, I feel like its fairly easy to follow and besides, isn't the best it could be
-# feel free to edit this (of course) based off of how you want to interact with the regions (you could make this function a relative of the NearDets function and use something similar to the current Create1DPlots method, for instance)
 def Split2Regions():
     NW, NE, SE, SW = [], [], [], []
     top_left, top_right, bottom_right = "1218", "1318", "1317"
@@ -192,8 +162,8 @@ def Split2Regions():
 
 # returns a time table ranging from 00:00:00 to 23:50:00 for use in comparisons
 # due to annoying requirments of datetime object, needs a date passed through, in this case a
-# date formatted like 180322 (str) is needed, therefore pass through the input date
-# so the comparisons are not days off
+# date formatted like 180322 (str) is needed, therefore pass through the date that is being looked at
+# so the comparisons in the ExtractL0rates function are correct
 def Time_Table(date):
     time_table = []
     dateAndTime = datetime.combine(Date_P2D(date), time(hour=0, minute=0, second=0))
@@ -275,7 +245,7 @@ def FindRates(dict):
 # the flags, will return a dict in the following format:
 #     VVV    KEY     VVV           VVV    VALUE    VVV
 #  [Datetime, Detector Number] = [Lv0rate, [Cartx, Carty]]
-def Lv0(filename):
+def L0L1(filename):
     debug_count = 0
     time_det_lv0rate_CCoors = {}
     file = open("DataDates/" + filename + "/L0L1.txt", 'r')
@@ -296,9 +266,8 @@ def Lv0(filename):
 def NLDN(filename):
     debug_count = 0
     CCoors_time_PCurrent = {}
-    C_times, C_Peak_Currents, G_times, G_Peak_Currents = [], [], [], []
-
-    file = open("DataDates/" + filename + "/NLDNOver100.txt", 'r')
+    times, Peak_Currents = [], []
+    file = open("DataDates/" + filename + "/NLDN.txt", 'r')
     # the reason this one looks fairly different when compared to the L0L1 function is because a dict is still made, but
     # times and Peak_Currents just pulls the data into seperate lists. This is done because it would have to otherwise be extracted from
     # the dict again, meaning this is faster and slightly easier, albeit a bit more confusing
@@ -308,21 +277,13 @@ def NLDN(filename):
     for line in file:
         columns = line.split()
         time = datetime.combine(Date_D2D(columns[0]), (Time_C2D(columns[1])))
+        CCoors_time_PCurrent[LL2CCoors((columns[2], columns[3]))] = (time, float(columns[4]))
 
-        if columns[5] == "C":
-            C_times.append(time)
-            C_Peak_Currents.append(float(columns[4]))
-            CCoors_time_PCurrent[LL2CCoors((columns[2], columns[3]))] = (time, float(columns[4]), "C")
-
-        if columns[5] == "G":
-            G_times.append(time)
-            G_Peak_Currents.append(float(columns[4]))
-            CCoors_time_PCurrent[LL2CCoors((columns[2], columns[3]))] = (time, float(columns[4]), "G")
-
+        times.append(time)
+        Peak_Currents.append(float(columns[4]))
         debug_count += 1
-
     print("Found " + str(debug_count) + " data points")
-    return CCoors_time_PCurrent, C_times, C_Peak_Currents, G_times, G_Peak_Currents
+    return CCoors_time_PCurrent, times, Peak_Currents
 
 # this will take out the necessary data from the L0 rate dict, it will return two arrays, one for placement and one for rates (color)
 def ExtractL0rates(dict, time_table):
@@ -361,165 +322,145 @@ def ExtractNLDN(dict, time_table):
     # this flag is used  to tell if there is no data for a frame of the NLDN data that appears on the TASD plot
     # if there is no data, this flag stays false and the array is appened with (None, None) to preserve the structure of the array
     # so that the .set_offsets function is happy that it sees a tuple of None rather than just nothing
-    C_flag, G_flag = False, False
+    flag = False
     # the ULTIMATE array that will be passed through to the plots
-    C_NLDNonTASD, G_NLDNonTASD = [], []
+    NLDNonTASD = []
     # a frame array similar to those in ExtractL0rates
-    C_frame_NLDNonTASD, G_frame_NLDNonTASD = [], []
+    frame_NLDNonTASD = []
     # this is for grabbing time vs peak current for the NLDN plot
     # this is for grabbing each frame of the NLDN data that appears on the TASD array, note that the NLDN data will dissappear
     for table_time in time_table:
-        for CCoor, time_PCurrent_CG in dict.items():
-            if time_PCurrent_CG[0] <= (table_time + TEN_MINS) and time_PCurrent_CG[0] >= (table_time - TIME_NLDN_IS_ON):
-                if time_PCurrent_CG[2] == "C":
-                    C_frame_NLDNonTASD.append(CCoor)
-                    C_flag = True
-                if time_PCurrent_CG[2] == "G":
-                    G_frame_NLDNonTASD.append(CCoor)
-                    G_flag = True
+        for CCoor, time_PCurrent in dict.items():
+            if time_PCurrent[0] <= (table_time + TEN_MINS) and time_PCurrent[0] >= (table_time - TIME_NLDN_IS_ON):
+                frame_NLDNonTASD.append(CCoor)
+                flag = True
                 debug_count += 1
-        if not C_flag:
-            C_frame_NLDNonTASD.append((None, None))
+        if not flag:
+            frame_NLDNonTASD.append((None, None))
             debug_count2 += 1
-        if not G_flag:
-            G_frame_NLDNonTASD.append((None, None))
-            debug_count2 += 1
-        C_flag = False
-        G_flag = False
+        flag = False
 
-        C_NLDNonTASD.append(C_frame_NLDNonTASD)
-        C_frame_NLDNonTASD = []
-        G_NLDNonTASD.append(G_frame_NLDNonTASD)
-        G_frame_NLDNonTASD = []
+        NLDNonTASD.append(frame_NLDNonTASD)
+        frame_NLDNonTASD = []
     print("Found " + str(debug_count) + " extraction matches")
     print("Found " + str(debug_count2) + " extraction misses")
     print("Total is " + str(debug_count + debug_count2) + " extractions")
-    return C_NLDNonTASD, G_NLDNonTASD
+    return NLDNonTASD
 
-# Ok, so this one is a little complex, make sure you understand NearDets (or at least understand what NearDets outputs) before you take this one on
-# the general idea for this function is to use NearDets and the Lv0_dict that you create with the L0L1 function to output a dict of the lv0rates
-# of the desired dets (the desired dets being the nearby ones of course)
-# Looking at it for the first time, ignore any min max stuff as that is just to help with labeling (its faster to find the min max when you find the lv0 instead of going back later)
-def FindLv0InNearDets(det, size, time_table, lv0_dict):
-    min = math.inf
-    max = -math.inf
-    temp_det_lv0 = []
-    # get the dict of the near dets
-    # note that this dict is AWESOME as it has the relative coordinates for each det (more on that in the NearDets function)
-    dets_dict = NearDets(det, size, True)
-    for plotplacememnt, detector in dets_dict.items():
-        for table_time in time_table:
-            if (table_time, detector) in lv0_dict.keys():
-                lv0 = lv0_dict[table_time, detector][0]
-                temp_det_lv0.append(lv0)
+def RateCutoff(dict, region, time_table):
+    avgs = []
+    for table_time in time_table: # for each time
+        total, hits = 0, 0 # start a running total
+        for det in region: # for each det in the region
+            if (table_time, det) in dict.keys(): # if it exists
 
-                # find the lowest lv0 and highest lv0
-                if lv0 > max:
-                    max = math.ceil(lv0)
-                if lv0 < min:
-                    min = math.floor(lv0)
-            else:
-                temp_det_lv0.append(None)
-        dets_dict[plotplacememnt] = [detector, temp_det_lv0]
-        temp_det_lv0 = []
+                count = 0 # start a count
+                for NearDet in NearDets(det):
+                    if (table_time, NearDet) in dict.keys():
+                        count += dict[table_time, NearDet][3] # and count how many near by dets make the cutoff
 
-    if min == math.inf:
-        min = 700
-    if max == -math.inf:
-        max = 800
+                if dict[table_time, det][3] and count >= ONED_CLOSEDETS_CUTOFF: # if enough neardets make the cut off and the det itself makes the cutoff
+                    total += dict[table_time, det][2] # add the rate to the total
+                    hits += 1 # and add a hit so we can divide by the correct amount to find the avg
 
-    return dets_dict, [math.floor(min - 1), math.ceil(max + 1)]
+        if hits == 0:
+            avgs.append(None)
+        else:
+            avgs.append(total / hits)
+    return avgs
 
-def MakePlots(this_date, save):
+# init function for the animation
+def init():
+    return list_plots
 
-    # Stright forward, make a gridspec of appropiate size, and iterate through each plot like (0,0), (0,1), ... , (1,0), ...
-    # and create them as it goes
-    def Create1DPlots(size, OneD_dict, time_table, x_ticks, y_ticks):
-        time_counters = []
+# update function, the bread and butter for the animation function
+def update(frame):
 
-        gs_right = fig.add_gridspec(size, size, left=0.53, right=0.98, top=.92, bottom=.08, wspace=0.2, hspace=0.2)
+    x = datetime.combine(Date_P2D(this_date), time(second=0)) + (frame * TEN_MINS)
+    y = np.linspace(-300, 1000, 250)
 
-        for n in range(size):
-            for m in range(size):
-                ax = fig.add_subplot(gs_right[n, m])
-                ax.set_xlim([x_ticks[0], x_ticks[len(x_ticks) - 1]])
-                ax.set_ylim([y_ticks[0], y_ticks[len(y_ticks) - 1]])
-                ax.set_xticks([])
-                ax.set_yticks([])
-                # if statment to tell if the plot is on the left side (then make the ytick visible)
-                # or on the bottom (then make the xticks visible)
-                if m == 0:
-                    ax.set_yticks(y_ticks)
-                if n == size-1:
-                    ax.set_xticks(x_ticks)
-                    ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H'))
-                # annotate the plots so we can see what det num they are (the OneD_dict[n, m][0] tells us the det num)
-                ax.annotate(OneD_dict[n, m][0], **anno_opts)
-                # put the actual data into the plot
-                ax.plot(time_table, OneD_dict[n, m][1], lw=1, c='green')
+    # update the positions of the readings for TASD
+    sp_sensor_readings.set_offsets(detectors_placements[frame])
+    # update the TASD colors based off of rates, note that the function call for this is .set_array because why not and it needs
+    # a numpy array, because why not
+    sp_sensor_readings.set_array(np.asarray(detectors_rates[frame]))
+    sp_lightning_readings.set_offsets(NLDNonTASD[frame])
 
-                counter, = ax.plot([], [], lw=1, c='blue')
-                time_counters.append(counter,)
-        return time_counters
+    lp_NLDN_time_counter.set_data(x, y)
+    lp_N_time_counter.set_data(x, y)
+    lp_SE_time_counter.set_data(x, y)
+    lp_SW_time_counter.set_data(x, y)
+    return list_plots
 
-    # update function, the bread and butter for the animation function
-    def update(frame):
+if __name__ == '__main__':
 
-        # find the points to place the blue line of ALL plots that have blue lines for each frame
-        x = datetime.combine(Date_P2D(this_date), time(second=0)) + (frame * TEN_MINS)
-        y = np.linspace(-300, min_max_y_OneD[1])
-
-        # update the positions of the readings for TASD
-        sp_sensor_readings.set_offsets(detectors_placements[frame])
-        # update the TASD colors based off of rates, note that the function call for this is .set_array because why not and it needs
-        # a numpy array, because why not
-        sp_sensor_readings.set_array(np.asarray(detectors_rates[frame]))
-        sp_G_lightning_readings.set_offsets(G_NLDNonTASD[frame])
-        sp_C_lightning_readings.set_offsets(C_NLDNonTASD[frame])
-
-        # move the blue line across the NLDN plot
-        lp_NLDN_time_counter.set_data(x, y)
-
-        # move the blue lines across the 1D plots
-        for counter in time_counters:
-            counter.set_data(x,y)
-
-        return list_plots
+    this_date = input("\nWhich date? ")
 
     print("Make sure all of the *'s are the same number")
-    # some useful constants
+
     TimeTable = Time_Table(this_date)
     ZeroHour = datetime.combine(Date_P2D(this_date), (time(second=0)))
     LastHour = datetime.combine(Date_P2D(this_date), (time(hour=23, minute=59)))
-    # for regional avging
+
     NW_dets, NE_dets, SW_dets, SE_dets = Split2Regions()
     N_dets = NW_dets + NE_dets
-    # for lv0 1D stuff
-    Size_of_OneD = 4
-    Centered_Det = "0308"
 
-    # getting the Lv0 stuff
     print("\nGrabbing L0L1 data...")
-    L0L1_dict = Lv0(this_date)
+    L0L1_dict = L0L1(this_date)
     print("\nFinding rates of change...")
     rate_warns = FindRates(L0L1_dict)
-    print("\nExtracting L0L1 data...")
+    print("\nExtracting data...")
     detectors_placements, detectors_rates = ExtractL0rates(L0L1_dict, TimeTable)
-    # getting the NLDN stuff
+    print()
     print("\nGrabbing NLDN data...")
-    NLDN_dict, C_Times, C_Peak_Currents, G_Times, G_Peak_Currents = NLDN(this_date)
-    print("\nExtracting NLDN data...")
-    C_NLDNonTASD, G_NLDNonTASD = ExtractNLDN(NLDN_dict, TimeTable)
-    # getting the 1D stuff
-    OneD_dict, min_max_y_OneD = FindLv0InNearDets(Centered_Det, Size_of_OneD, TimeTable, L0L1_dict)
+    NLDN_dict, PC_Times, Peak_Currents = NLDN(this_date)
+    print("\nExtracting data...")
+    NLDNonTASD = ExtractNLDN(NLDN_dict, TimeTable)
 
-    # Make labels for the plots
+    print("\nFinding N rate cutoffs")
+    N = RateCutoff(L0L1_dict, N_dets, TimeTable)
+    print("Finding SW rate cutoffs")
+    SW = RateCutoff(L0L1_dict, SW_dets, TimeTable)
+    print("Finding SE rate cutoffs")
+    SE = RateCutoff(L0L1_dict, SE_dets, TimeTable)
+
     xLabels_NLDN, xLabels_OneD  = [], []
-    for i in range(9):
+    for i in range(8):
         xLabels_NLDN.append(ZeroHour + i * THREE_HOURS)
-    for i in range(5):
+    for i in range(4):
         xLabels_OneD.append(ZeroHour + i * SIX_HOURS)
-    yLabels_OneD = list(range(min_max_y_OneD[0], min_max_y_OneD[1] + 1, 5))
+
+    min_max_flag = False
+    min_rate = 1000000
+    max_rate = -1000000
+
+    for rate in N:
+        if rate is not None:
+            min_max_flag = True
+            if rate < min_rate:
+                min_rate = rate
+            if rate > max_rate:
+                max_rate = rate
+    for rate in SW:
+        if rate is not None:
+            min_max_flag = True
+            if rate < min_rate:
+                min_rate = rate
+            if rate > max_rate:
+                max_rate = rate
+    for rate in SE:
+        if rate is not None:
+            min_max_flag = True
+            if rate < min_rate:
+                min_rate = rate
+            if rate > max_rate:
+                max_rate = rate
+
+    if not min_max_flag:
+        min_rate = 0
+        max_rate = 0
+    min_rate += -.5
+    max_rate += .5
 
     # all this stuff below here is plot creation stuff
     # a bunch of it consists of tiny tweaks to make the plots look better and more readable
@@ -527,33 +468,23 @@ def MakePlots(this_date, save):
     fig = plt.figure(constrained_layout=False)
     fig.suptitle(this_date, fontsize=10)
 
-    # annotation specs (for the 1D plots)
-    anno_opts = dict(xy=(0.5, 0.9), xycoords='axes fraction', va='center', ha='center')
-
-    # color map stuff (for the TASD)
     cmap = mpl.colors.ListedColormap(CMAP_COLORS)
     norm = mpl.colors.BoundaryNorm(CMAP_BOUNDS, cmap.N)
 
-    # the left grid spec, the right one has to be defined by the Create1DPlots method
-    gs_left = fig.add_gridspec(5, 3, left=0.09, right=0.46, top=.92, bottom=.08, wspace=0, hspace=0.5)
+    gs_left = fig.add_gridspec(5, 3, left=0.08, right=0.48, top=.92, bottom=.08, wspace=0, hspace=0.5)
+    gs_right = fig.add_gridspec(2, 4, left=0.53, right=0.98, wspace=0.6, hspace=0.3)
 
-    # setting the x and y tick label sizes
     plt.rc('xtick', labelsize = 6)
     plt.rc('ytick', labelsize = 6)
 
-    # creating all of the 1D plots and grapping the time counters from it
-    time_counters = Create1DPlots(Size_of_OneD, OneD_dict, TimeTable, xLabels_OneD, yLabels_OneD)
-
-    # creating the TASD plot (top left)
     TASDax = fig.add_subplot(gs_left[:3, :3])
     TASDax.set_xlim(-20, 20)
     TASDax.set_ylim(-23, 18)
     sp_sensors = TASDax.scatter(tasdx, tasdy, c='yellow', s=7, marker='.')
     sp_sensor_readings = TASDax.scatter([], [], c=[], s=7, cmap=cmap, norm=norm, marker='s', vmin = -5, vmax = 5)
-    sp_G_lightning_readings = TASDax.scatter([], [], c='.4', s=10, marker='+')
-    sp_C_lightning_readings = TASDax.scatter([], [], c='black', s=10, marker='+')
+    sp_lightning_readings = TASDax.scatter([], [], c='black', s=10, marker='+')
     plt.colorbar(sp_sensor_readings, cmap=cmap, norm=norm)
-    # creating the NLDN plot (bottom left)
+
     NLDNax = fig.add_subplot(gs_left[3:, :3])
     NLDNax.grid(True)
     NLDNax.set_xlim(ZeroHour, LastHour)
@@ -562,66 +493,55 @@ def MakePlots(this_date, save):
     NLDNax.set_xlabel("Time")
     NLDNax.set_ylabel("Peak Current")
     NLDNax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
-    sp_lightning_level = NLDNax.scatter(G_Times, G_Peak_Currents, c='.4', s=7, marker='+', label="G Events")
-    sp_lightning_level = NLDNax.scatter(C_Times, C_Peak_Currents, c='black', s=7, marker='+', label="C Events")
+    sp_lightning_level = NLDNax.scatter(PC_Times, Peak_Currents, c='black', s=7, marker='+')
     lp_NLDN_time_counter, = NLDNax.plot([], [], lw=1, c='blue')
-    NLDNax.legend(prop={"size":5})
 
-    # the update function for animation must return all of the updated plots
-    list_plots = [sp_sensor_readings, sp_C_lightning_readings, sp_G_lightning_readings, lp_NLDN_time_counter] + time_counters
+    Nax = fig.add_subplot(gs_right[0, 1:3])
+    Nax.set_title("N")
+    Nax.set_xlim(ZeroHour, LastHour)
+    Nax.set_ylim(min_rate, max_rate)
+    Nax.set_xticks(xLabels_OneD)
+    Nax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
+    #Nax.plot(TimeTable, N, lw=1, c='green')
+    Nax.scatter(TimeTable, N, s=1, c='green')
+    lp_N_time_counter, = Nax.plot([], [], lw=1, c='blue')
 
-    # *THE* animation function, literally everything above this was sorted, parsed, appended, etc all for this one line function
-    anim = animation.FuncAnimation(fig, update, interval=ANI_SPEED, blit=True, repeat=True, frames=144)
+    SEax = fig.add_subplot(gs_right[1, 2:])
+    SEax.set_title("SE")
+    SEax.set_xlim(ZeroHour, LastHour)
+    SEax.set_ylim(min_rate, max_rate)
+    SEax.set_xticks(xLabels_OneD)
+    SEax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
+    #SEax.plot(TimeTable, SE, lw=1, c='green')
+    SEax.scatter(TimeTable, SE, s=1, c='green')
+    lp_SE_time_counter, = SEax.plot([], [], lw=1, c='blue')
 
-    # a sigle print statment so that the output looks nicer, but im guessing that you probably knew or guessed that
+    SWax = fig.add_subplot(gs_right[1, :2])
+    SWax.set_title("SW")
+    SWax.set_xlim(ZeroHour, LastHour)
+    SWax.set_ylim(min_rate, max_rate)
+    SWax.set_xticks(xLabels_OneD)
+    SWax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
+    #SWax.plot(TimeTable, SW, lw=1, c='green')
+    SWax.scatter(TimeTable, SW, s=1, c='green')
+    lp_SW_time_counter, = SWax.plot([], [], lw=1, c='blue')
+
+    list_plots = [sp_sensor_readings, sp_lightning_readings, lp_NLDN_time_counter, lp_N_time_counter, lp_SE_time_counter, lp_SW_time_counter]
+
+    anim = animation.FuncAnimation(fig, update, init_func=init, interval=ANI_SPEED, blit=True, repeat=True, frames=144)
+
     print()
-    # print out all of the warnings we tripped (currently, this is NOT dynamic and only prints out the above 5% warning (the only current warning) but provides a base for additional warnings later)
     for warning in rate_warns:
         print("Warning: " + warning[0] + " at " + warning[1].strftime("%H:%M:%S") + " is above " + str(RATE_WARNING) + "%")
 
-    print()
+    save = str(input("\nSave? [y/n] "))
+    while (save != "y" and save != "n"):
+        save = str(input("Invalid response. Save? [y/n] "))
 
-    if (save):
-        path = "Movies/" + str(this_date)
-        name = "RateLv0Over100"
-        if not os.path.isdir(path):
-            os.mkdir(path)
+    if (save == "y"):
         print("Saving...")
         HTML(anim.to_html5_video())
-        anim.save(path + "/" + name + ".mp4", fps=1, writer="ffmpeg", dpi=1000, bitrate=5000)
-        plt.close(fig)
+        place = "Movies/" + str(this_date)
+        anim.save(place + "/RateRVcutoff.mp4", fps=1, writer="ffmpeg", dpi=1000, bitrate=5000)
 
-    return anim
-
-
-if __name__ == "__main__":
-
-    input_date = input("\nWhich date? ")
-    # check if date exists
-    while not os.path.isdir("DataDates/" + input_date):
-        input_date = input("No data for that date. Choose again, or n to stop: ")
-        if input_date == "n":
-            break
-    if input_date is not "n":
-        animation = MakePlots(input_date, False)
-
-        plt.show()
-
-        # saving the animation, note that the place variable and the name variable can be dynamic
-        save = str(input("Save? [y/n] "))
-        while (save != "y" and save != "n"):
-            save = str(input("Invalid response. Save? [y/n] "))
-
-        if (save == "y"):
-
-            path = "Movies/" + str(input_date)
-            name = "RateLv0Over100"
-
-            if not os.path.isdir(path):
-                os.mkdir(path)
-            print("Saving...")
-            HTML(animation.to_html5_video())
-            animation.save(path + "/" + name + ".mp4", fps=1, writer="ffmpeg", dpi=1000, bitrate=5000)
-
-    else:
-        print("Goodbye!")
+    plt.show()
