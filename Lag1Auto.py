@@ -1,10 +1,12 @@
 from datetime import *
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
 TEN_MINS = timedelta(minutes=10)
+BINS = 50
 
 # change time that looks like 123456 to a datetime.time that looks like 12:34:56
 def Time_P2D(plain_time):
@@ -83,17 +85,33 @@ def FindRates(dict):
 
 
 input_date = input("What date? ")
-input_det = input("What det? ")
+RV_or_Lv0Rate = int(input("RV (2) or Lv0Rate (0)? "))
 Lv0dict = Lv0(input_date)
 FindRates(Lv0dict)
 
-lv0ratesforauto = []
+lv0rates_dict = {}
+autocorr_list = []
 
-for key, value in Lv0dict.items():
-    if key[1] == input_det:
-        lv0ratesforauto.append(value[2])
+for time_det, lv0_CCoors_Rate in Lv0dict.items():
+    if time_det[1] not in lv0rates_dict:
+        lv0rates_dict[time_det[1]] = [lv0_CCoors_Rate[RV_or_Lv0Rate]]
+    else:
+        lv0rates_dict[time_det[1]].append(lv0_CCoors_Rate[RV_or_Lv0Rate])
 
-sr = pd.Series(lv0ratesforauto)
-index_ = pd.date_range(Date_P2D_num2(input_date) + ' 00:00', periods = len(lv0ratesforauto), freq ='H')
-sr.index = index_
-print(sr.autocorr())
+for det, list in lv0rates_dict.items():
+    sr = pd.Series(list)
+    index_ = pd.date_range(Date_P2D_num2(input_date) + ' 00:00', periods = len(list), freq ='H')
+    sr.index = index_
+    autoc = sr.autocorr()
+    #print(det, autoc)
+    autocorr_list.append(autoc)
+
+fig = plt.figure()
+plt.rc('xtick', labelsize = 6)
+plt.rc('ytick', labelsize = 6)
+ax = fig.add_subplot()
+ax.set_xlim(-1, 1)
+ax.set_xticks([-1, -.5, 0, .5, 1])
+ax.hist(autocorr_list, bins=BINS,histtype='step', log=True)
+fig.suptitle("Autocorrelation of Lv0Rates", fontsize=15)
+plt.show()
