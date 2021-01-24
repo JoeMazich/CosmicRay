@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
 TEN_MINS = timedelta(minutes=10)
-BINS = 50
+BINS = 40
 
 # change time that looks like 123456 to a datetime.time that looks like 12:34:56
 def Time_P2D(plain_time):

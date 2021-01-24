@@ -11,7 +11,7 @@ from datetime import *
 from taTools import *
 
 from IPython.display import HTML
-animation.rcParams["animation.writer"] = "ffmpeg"
+#animation.rcParams["animation.writer"] = "ffmpeg"
 
 
 #                             TODO
@@ -221,7 +221,7 @@ def Det2Cart(det_num):
 
         if det_num == columns[0]:
             # once we math it, we convert lat long to x, y, z, and we only care about x, y
-            gps = gp.point.Point(columns[1], columns[2], columns[3])
+            gps = gp.point.Point(columns[1], columns[2], 0)#columns[3])
             x, y, z = gps2cart(gps)
             return (x, y)
     file.close()
@@ -298,7 +298,7 @@ def NLDN(filename):
     CCoors_time_PCurrent = {}
     C_times, C_Peak_Currents, G_times, G_Peak_Currents = [], [], [], []
 
-    file = open("DataDates/" + filename + "/NLDNOver100.txt", 'r')
+    file = open("DataDates/" + filename + "/NLDN.txt", 'r')
     # the reason this one looks fairly different when compared to the L0L1 function is because a dict is still made, but
     # times and Peak_Currents just pulls the data into seperate lists. This is done because it would have to otherwise be extracted from
     # the dict again, meaning this is faster and slightly easier, albeit a bit more confusing
@@ -583,7 +583,7 @@ def MakePlots(this_date, save):
 
     if (save):
         path = "Movies/" + str(this_date)
-        name = "RateLv0Over100"
+        name = "RateLv0"
         if not os.path.isdir(path):
             os.mkdir(path)
         print("Saving...")
@@ -615,7 +615,7 @@ if __name__ == "__main__":
         if (save == "y"):
 
             path = "Movies/" + str(input_date)
-            name = "RateLv0Over100"
+            name = "RateLv0"
 
             if not os.path.isdir(path):
                 os.mkdir(path)

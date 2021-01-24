@@ -22,7 +22,9 @@ def Date_P2C(date):
 for line in file:
     columns = line.split()
 
-    if abs(float(columns[4])) > 100 and Date_C2P(columns[0]) not in interesting_dates:
+    if abs(float(columns[4])) > 75 and Date_C2P(columns[0]) not in interesting_dates and (Date_C2P(columns[0])[2:4] == '12' or int(Date_C2P(columns[0])[2:4]) <= 2):
+        print(Date_C2P(columns[0]))
+        print(Date_C2P(columns[0])[2:4])
         interesting_dates.append(Date_C2P(columns[0]))
 
 file.close()
@@ -47,6 +49,7 @@ for line in Parentfile:
         Datefile.close()
 Parentfile.close()
 '''
+'''
 for filename in os.listdir("RawData/L0L1/"):
     Parentfile = open('RawData/L0L1/' + filename, 'r')
 
@@ -61,3 +64,4 @@ for filename in os.listdir("RawData/L0L1/"):
             Datefile.write(line) #line
             Datefile.close()
     Parentfile.close()
+'''
