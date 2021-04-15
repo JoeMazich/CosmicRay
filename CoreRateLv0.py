@@ -66,7 +66,7 @@ TAKE_OUT_WARN = True
 ANI_SPEED = 900  #animation speed - lower is faster
 
 CMAP_COLORS = ['purple', 'blue', 'cyan', 'green', 'orange', 'red', 'maroon'] # set the colors for the 2D map
-CMAP_BOUNDS = [-5, -3, -1, -0.5, 0.5, 1, 3, 5] # set the bounds for the colors on the 2D map
+CMAP_BOUNDS = [-5, -3, -1, -0.5, 0.5, 1, 3, 5] # set the bounds for the colors on the 2D map [-5, -3, -1, -0.5, 0.5, 1, 3, 5]
 # (Note that if you add any more beyond -5 and 5, you have to change vmin, vmax at sp_sensor_readings definition) (you can make this dynamic with CMAP_BOUNDS[0], CMAP_BOUNDS[len(CMAP_BOUNDS) - 1])
 
 
@@ -282,7 +282,7 @@ def Lv0(filename):
 
     for line in file:
         columns = line.split()
-        if not TAKE_OUT_DONTUSE or int(columns[5]) == 0:
+        if not TAKE_OUT_DONTUSE or float(columns[5]) == 0:
             if not TAKE_OUT_WARN or int(columns[6]) == 0:
                 time_det_lv0rate_CCoors[datetime.combine(Date_P2D(columns[0]), (Time_P2D(columns[1]))), columns[2]] = [float(columns[3]), Det2Cart(columns[2])]
                 debug_count += 1
@@ -549,7 +549,7 @@ def MakePlots(this_date, save):
     TASDax.set_xlim(-20, 20)
     TASDax.set_ylim(-23, 18)
     sp_sensors = TASDax.scatter(tasdx, tasdy, c='yellow', s=7, marker='.')
-    sp_sensor_readings = TASDax.scatter([], [], c=[], s=7, cmap=cmap, norm=norm, marker='s', vmin = -5, vmax = 5)
+    sp_sensor_readings = TASDax.scatter([], [], c=[], s=7, cmap=cmap, norm=norm, marker='s', vmin = -30, vmax = 30)
     sp_G_lightning_readings = TASDax.scatter([], [], c='.4', s=10, marker='+')
     sp_C_lightning_readings = TASDax.scatter([], [], c='black', s=10, marker='+')
     plt.colorbar(sp_sensor_readings, cmap=cmap, norm=norm)
@@ -588,7 +588,7 @@ def MakePlots(this_date, save):
             os.mkdir(path)
         print("Saving...")
         HTML(anim.to_html5_video())
-        anim.save(path + "/" + name + ".mp4", fps=1, writer="ffmpeg", dpi=1000, bitrate=5000)
+        anim.save(path + "/" + name + ".mov", fps=1, writer="ffmpeg", dpi=1000, bitrate=5000)
         plt.close(fig)
 
     return anim
@@ -621,7 +621,7 @@ if __name__ == "__main__":
                 os.mkdir(path)
             print("Saving...")
             HTML(animation.to_html5_video())
-            animation.save(path + "/" + name + ".mp4", fps=1, writer="ffmpeg", dpi=1000, bitrate=5000)
+            animation.save(path + "/" + name + ".mov", fps=1, writer="ffmpeg", dpi=1000, bitrate=5000)
 
     else:
         print("Goodbye!")
