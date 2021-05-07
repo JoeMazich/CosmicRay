@@ -58,7 +58,7 @@ from IPython.display import HTML
 ONED_RATE_CUTOFF = .5 # the cut off for rates taken into account for the 1D plots (inclusive cutoff, meaning if this is at .5, rates at and below .5 are NOT counted for the one D plots)
 ONED_CLOSEDETS_CUTOFF = 6 # the amount of dets that need to be above the ^ Cutoff around a 5x5 of a DET to count the DET in the 1D plots
 TIME_NLDN_IS_ON = timedelta(hours=1, minutes=30) # this is the amount of time NLDN data will stay on the TASD plot once it pops up (inclusive) (also, add ten mins to get that acutal amount of time it stay up)
-RATE_WARNING = 5 # warn the user about rates above this amount
+RATE_WARNING = 3 # warn the user about rates above this amount
 
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
@@ -68,11 +68,11 @@ ANI_SPEED = 900  #animation speed - lower is faster
 # Decent colors to choose from : # ['#fc00b6', '#8e0da8', '#5201fe', '#0021ff', '#00f7f7', '#046b05', '#13f000', '#cf7600', '#731f00', '#b60909', '#8a0000', '#530028']
 
 CMAP_COLORS = ['purple', 'blue', 'cyan', 'green', 'orange', 'red', 'maroon'] # set the colors for the 2D map
-CMAP_BOUNDS = [-5, -3, -1, -0.5, 0.5, 1, 3, 5] # set the bounds for the colors on the 2D map [-5, -3, -1, -0.5, 0.5, 1, 3, 5]
+CMAP_BOUNDS = [-3, -2, -1, -0.5, 0.5, 1, 2, 3] # set the bounds for the colors on the 2D map [-5, -3, -1, -0.5, 0.5, 1, 3, 5]
 # (Note that if you add any more beyond -5 and 5, you have to change vmin, vmax at sp_sensor_readings definition) (you can make this dynamic with CMAP_BOUNDS[0], CMAP_BOUNDS[len(CMAP_BOUNDS) - 1])
 
 CMAP_COLORS_TEMP = ['#fc00b6', '#8e0da8', '#0021ff', 'cyan', 'green', 'orange', 'red', '#b60909', '#530028']
-CMAP_BOUNDS_TEMP = [-30, -5, -3, -1, -0.75, 0.75, 1, 3, 5, 30] # set the bounds for the colors on the 2D map [-5, -3, -1, -0.5, 0.5, 1, 3, 5]
+CMAP_BOUNDS_TEMP = [-30, -5, -3, -1, -0.5, 0.5, 1, 3, 5, 30] # set the bounds for the colors on the 2D map [-5, -3, -1, -0.5, 0.5, 1, 3, 5]
 
 
 # Constants, i.e. dont change even if you think you don't need them anymore or replaced them in a function with another constant
