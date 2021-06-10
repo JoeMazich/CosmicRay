@@ -11,7 +11,6 @@ def GetDataDate(date):
     if not os.path.isdir("DataDates/" + date):
         os.mkdir("DataDates/" + date)
 
-    '''
     Parentfile = open('RawData/NLDN/Raw_NLDN.txt', 'r')
     for line in Parentfile:
         columns = line.split()
@@ -22,15 +21,16 @@ def GetDataDate(date):
             Datefile.write(line)
             Datefile.close()
     Parentfile.close()
-
+    
+    '''
     if not os.path.isfile('DataDates/' + date + '/NLDN.txt'):
         open('DataDates/' + date + '/NLDN.txt', 'a')'''
 
-    for filename in os.listdir("RawData/L0L1temp/"):
+    for filename in os.listdir("RawData/L0L1/"):
         #Parentfile = open('RawData/L0L1/' + filename, 'r')
         flag = False
         if filename[9:11] == date[0:2]:
-            Parentfile = open('RawData/L0L1temp/' + filename, 'r')
+            Parentfile = open('RawData/L0L1/' + filename, 'r')
 
             for line in Parentfile:
                 columns = line.split()
@@ -39,9 +39,9 @@ def GetDataDate(date):
 
                     if datePF == date:
                         #Datefile = open('DataDates/' + date + '/L0L1.txt', 'a')
-                        if not os.path.isdir("DataDates/temp/" + date):
-                            os.mkdir("DataDates/temp/" + date)
-                        Datefile = open('DataDates/temp/' + date + '/L0L1.txt', 'a')
+                        if not os.path.isdir("DataDates/" + date):
+                            os.mkdir("DataDates/" + date)
+                        Datefile = open('DataDates/' + date + '/L0L1.txt', 'a')
                         Datefile.write(line) #line
                         Datefile.close()
                         flag = True
