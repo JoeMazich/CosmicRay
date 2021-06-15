@@ -4,11 +4,12 @@ Basic tools for cosmic ray visualization
 
 # How to use
 
-## Setup File paths
+## Setup File paths and modules
 
 1. Clone this repo locally
 2. Run the file *RUN_ME_FIRST.py*
 3. Check to make sure that directories *DataDates*, *Movies*, and *RawData* have been created.
+4. run: *pip install -r requirments.txt*
 
 ##  Get data
 
