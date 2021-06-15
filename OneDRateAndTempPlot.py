@@ -11,16 +11,16 @@ det2 = input('Det 2? ')
 det3 = input('Det 3? ')
 
 earlytime  = '080000'
-latetime   = '100000'
-markedtime = '085000'
+latetime   = '235000'
+markedtime = '084000'
 
 a = '080000'
-b = '083000'
-c = '090000'
-d = '093000'
-e = '100000'
+b = '100000'
+c = '120000'
+d = '180000'
+e = '235000'
 
-file = open("DataDates/" + inputdate + "/L0L1.txt", 'r')
+file = open("DataDates/temp/" + inputdate + "/L0L1.txt", 'r')
 l01, l02, l03, temp1, temp2, temp3 = [], [], [], [], [], []
 times1, times2, times3 = [], [], []
 
@@ -76,7 +76,7 @@ l01ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
 l01ax.plot(times1, l01)
 l01ax.plot([markedtime, markedtime], [0, 10000])
 l01ax.set_xlim([datetime.combine(Date_P2D(inputdate), (Time_P2D(earlytime))), datetime.combine(Date_P2D(inputdate), (Time_P2D(latetime)))])
-l01ax.set_ylim([735, 748])
+l01ax.set_ylim([720, 750])
 
 temp1ax = fig.add_subplot(gs[1, 0])
 temp1ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
@@ -84,7 +84,7 @@ temp1ax.plot(times1, temp1)
 temp1ax.plot([markedtime, markedtime], [0, 10000])
 temp1ax.set_xlim([datetime.combine(Date_P2D(inputdate), (Time_P2D(earlytime))), datetime.combine(Date_P2D(inputdate), (Time_P2D(latetime)))])
 temp1ax.set_xticks([a,b,c,d,e])
-temp1ax.set_ylim([17, 21])
+temp1ax.set_ylim([16, 21])
 
 l02ax = fig.add_subplot(gs[0, 1])
 l02ax.set_title(det2)
@@ -93,7 +93,7 @@ l02ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
 l02ax.plot(times2, l02)
 l02ax.plot([markedtime, markedtime], [0, 10000])
 l02ax.set_xlim([datetime.combine(Date_P2D(inputdate), (Time_P2D(earlytime))), datetime.combine(Date_P2D(inputdate), (Time_P2D(latetime)))])
-l02ax.set_ylim([735, 748])
+l02ax.set_ylim([720, 750])
 
 temp2ax = fig.add_subplot(gs[1, 1])
 temp2ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
@@ -101,7 +101,7 @@ temp2ax.plot(times2, temp2)
 temp2ax.plot([markedtime, markedtime], [0, 10000])
 temp2ax.set_xlim([datetime.combine(Date_P2D(inputdate), (Time_P2D(earlytime))), datetime.combine(Date_P2D(inputdate), (Time_P2D(latetime)))])
 temp2ax.set_xticks([a,b,c,d,e])
-temp2ax.set_ylim([17, 21])
+temp2ax.set_ylim([16, 21])
 
 l03ax = fig.add_subplot(gs[0, 2])
 l03ax.set_title(det3)
@@ -110,7 +110,7 @@ l03ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
 l03ax.plot(times3, l03)
 l03ax.plot([markedtime, markedtime], [0, 10000])
 l03ax.set_xlim([datetime.combine(Date_P2D(inputdate), (Time_P2D(earlytime))), datetime.combine(Date_P2D(inputdate), (Time_P2D(latetime)))])
-l03ax.set_ylim([735, 748])
+l03ax.set_ylim([720, 750])
 
 temp3ax = fig.add_subplot(gs[1, 2])
 temp3ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
@@ -118,6 +118,6 @@ temp3ax.plot(times3, temp3)
 temp3ax.plot([markedtime, markedtime], [0, 10000])
 temp3ax.set_xlim([datetime.combine(Date_P2D(inputdate), (Time_P2D(earlytime))), datetime.combine(Date_P2D(inputdate), (Time_P2D(latetime)))])
 temp3ax.set_xticks([a,b,c,d,e])
-temp3ax.set_ylim([17, 21])
+temp3ax.set_ylim([16, 21])
 
 plt.show()
