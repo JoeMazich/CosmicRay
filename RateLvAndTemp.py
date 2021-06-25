@@ -57,7 +57,7 @@ from IPython.display import HTML
 
 ONED_RATE_CUTOFF = .5 # the cut off for rates taken into account for the 1D plots (inclusive cutoff, meaning if this is at .5, rates at and below .5 are NOT counted for the one D plots)
 ONED_CLOSEDETS_CUTOFF = 6 # the amount of dets that need to be above the ^ Cutoff around a 5x5 of a DET to count the DET in the 1D plots
-TIME_NLDN_IS_ON = timedelta(hours=1, minutes=30) # this is the amount of time NLDN data will stay on the TASD plot once it pops up (inclusive) (also, add ten mins to get that acutal amount of time it stay up)
+TIME_NLDN_IS_ON = timedelta(minutes=30) # this is the amount of time NLDN data will stay on the TASD plot once it pops up (inclusive) (also, add ten mins to get that acutal amount of time it stay up)
 RATE_WARNING = 3 # warn the user about rates above this amount
 
 TAKE_OUT_DONTUSE = True
@@ -249,13 +249,32 @@ def FindRates(dict):
         this_det = time_det[1]
         this_time = time_det[0]
         next_time = time_det[0] + TEN_MINS
+        previous_time = time_det[0] - TEN_MINS
         # check to see if the same det exsists ten mins after in the dict
-        if (next_time, this_det) in dict.keys():
+        '''if (next_time, this_det) in dict.keys():
             # if it is, then find the rate of change and append it to the list (the value of the dict)
             # at this_time (not at next_time)
             # VV This VV exsists here because we had to check it exsisted first
             next_lv0 = dict[next_time, this_det][0]
             rate = ((next_lv0 - this_lv0) / this_lv0) * 100
+            lv0_latlong.append(rate)
+            # this if else is used for the rate cutoff and it will be used in the 1D plots
+            if abs(rate) >= ONED_RATE_CUTOFF:
+                lv0_latlong.append(1)
+            else:
+                lv0_latlong.append(0)
+
+            if abs(rate) >= RATE_WARNING:
+                rate_warns.append((this_det, this_time))
+
+            debug_count += 1'''
+
+        if (previous_time, this_det) in dict.keys():
+            # if it is, then find the rate of change and append it to the list (the value of the dict)
+            # at this_time (not at next_time)
+            # VV This VV exsists here because we had to check it exsisted first
+            previous_lv0 = dict[previous_time, this_det][0]
+            rate = ((this_lv0 - previous_lv0) / previous_lv0) * 100
             lv0_latlong.append(rate)
             # this if else is used for the rate cutoff and it will be used in the 1D plots
             if abs(rate) >= ONED_RATE_CUTOFF:
@@ -277,6 +296,7 @@ def FindRates(dict):
 
     return rate_warns
 
+
 def FindTempDiffs(dict):
 
     for time_det, temp_latlong in dict.items():
@@ -284,10 +304,15 @@ def FindTempDiffs(dict):
         this_det = time_det[1]
         this_time = time_det[0]
         next_time = this_time + TEN_MINS
+        previous_time = this_time - TEN_MINS
 
-        if (next_time, this_det) in dict.keys():
+        '''if (next_time, this_det) in dict.keys():
             next_temp = dict[next_time, this_det][0]
             abs_change = next_temp - this_temp
+            temp_latlong.append(abs_change)'''
+        if (previous_time, this_det) in dict.keys():
+            previous_temp = dict[previous_time, this_det][0]
+            abs_change = this_temp - previous_temp
             temp_latlong.append(abs_change)
         else:
             temp_latlong.extend([0])
