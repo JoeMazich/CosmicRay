@@ -11,7 +11,7 @@ det2 = input('Deficit 2? ')
 
 earlytime_e  = '170000'
 latetime_e   = '200000'
-markedtime_e = '190000'
+markedtime_e = '191000'
 
 a_e = '170000'
 b_e = '180000'
@@ -22,7 +22,7 @@ e_e = '100000'
 
 earlytime_d  = '070000'
 latetime_d   = '100000'
-markedtime_d = '075000'
+markedtime_d = '080000'
 
 a_d = '070000'
 b_d = '080000'
@@ -31,7 +31,7 @@ d_d = '100000'
 
 e_d = '090000'
 
-file = open("DataDates/temp/" + inputdate + "/L0L1.txt", 'r')
+file = open("DataDates/" + inputdate + "/L0L1.txt", 'r')
 l01, l02, l03, temp1, temp2, temp3 = [], [], [], [], [], []
 times1, times2, times3 = [], [], []
 

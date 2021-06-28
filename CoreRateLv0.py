@@ -297,7 +297,7 @@ def FindRates(dict):
 def Lv0(filename):
     debug_count = 0
     time_det_lv0rate_CCoors = {}
-    file = open("DataDates/temp/" + filename + "/L0L1.txt", 'r')
+    file = open("DataDates/" + filename + "/L0L1.txt", 'r')
 
     for line in file:
         columns = line.split()
@@ -565,8 +565,8 @@ def MakePlots(this_date, save):
 
     # creating the TASD plot (top left)
     TASDax = fig.add_subplot(gs_left[:3, :3])
-    TASDax.set_xlim(-20, 20)
-    TASDax.set_ylim(-23, 18)
+    TASDax.set_xlim(-25, 25)#(-20, 20)
+    TASDax.set_ylim(-28, 23)#(-23, 18)
     sp_sensors = TASDax.scatter(tasdx, tasdy, c='yellow', s=7, marker='.')
     sp_sensor_readings = TASDax.scatter([], [], c=[], s=7, cmap=cmap, norm=norm, marker='s', vmin = -30, vmax = 30)
     sp_G_lightning_readings = TASDax.scatter([], [], c='.4', s=10, marker='+')
@@ -578,8 +578,8 @@ def MakePlots(this_date, save):
     NLDNax.set_xlim(ZeroHour, LastHour)
     NLDNax.set_ylim(-250, 250)
     NLDNax.set_xticks(xLabels_NLDN)
-    NLDNax.set_xlabel("Time")
-    NLDNax.set_ylabel("Peak Current")
+    NLDNax.set_xlabel("Time (UTC)")
+    NLDNax.set_ylabel("Peak Current (KA)")
     NLDNax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
     sp_lightning_level = NLDNax.scatter(G_Times, G_Peak_Currents, c='.4', s=7, marker='+', label="G Events")
     sp_lightning_level = NLDNax.scatter(C_Times, C_Peak_Currents, c='black', s=7, marker='+', label="C Events")

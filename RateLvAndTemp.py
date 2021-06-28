@@ -326,7 +326,7 @@ def FindTempDiffs(dict):
 def Lv0(filename):
     debug_count = 0
     time_det_lv0rate_CCoors, time_det_temp_CCoors = {}, {}
-    file = open("DataDates/temp/" + filename + "/L0L1.txt", 'r')
+    file = open("DataDates/" + filename + "/L0L1.txt", 'r')
 
     for line in file:
         columns = line.split()
@@ -419,7 +419,7 @@ def ExtractNLDN(dict, time_table):
     # this is for grabbing each frame of the NLDN data that appears on the TASD array, note that the NLDN data will dissappear
     for table_time in time_table:
         for CCoor, time_PCurrent_CG in dict.items():
-            if time_PCurrent_CG[0] <= (table_time + TEN_MINS) and time_PCurrent_CG[0] >= (table_time - TIME_NLDN_IS_ON):
+            if time_PCurrent_CG[0] <= (table_time + TEN_MINS) and time_PCurrent_CG[0] >= (table_time + TEN_MINS - TIME_NLDN_IS_ON):
                 if time_PCurrent_CG[2] == "C":
                     C_frame_NLDNonTASD.append(CCoor)
                     C_flag = True
@@ -614,7 +614,7 @@ if __name__ == "__main__":
 
         if (save == "y"):
 
-            path = "Movies/temp/" + str(input_date)
+            path = "Movies/" + str(input_date)
             name = "TempandRate"
 
             if not os.path.isdir(path):
