@@ -57,7 +57,7 @@ from IPython.display import HTML
 
 ONED_RATE_CUTOFF = .5 # the cut off for rates taken into account for the 1D plots (inclusive cutoff, meaning if this is at .5, rates at and below .5 are NOT counted for the one D plots)
 ONED_CLOSEDETS_CUTOFF = 6 # the amount of dets that need to be above the ^ Cutoff around a 5x5 of a DET to count the DET in the 1D plots
-TIME_NLDN_IS_ON = timedelta(minutes=10) # this is the amount of time NLDN data will stay on the TASD plot once it pops up (inclusive) (also, add ten mins to get that acutal amount of time it stay up)
+TIME_NLDN_IS_ON = timedelta(minutes=20) # this is the amount of time NLDN data will stay on the TASD plot once it pops up (inclusive) (also, add ten mins to get that acutal amount of time it stay up)
 RATE_WARNING = 5 # warn the user about rates above this amount
 
 TAKE_OUT_DONTUSE = True
@@ -235,6 +235,7 @@ def Det2Cart(det_num):
 #     VVV    KEY     VVV              VVV    VALUE    VVV
 #  [Datetime, Detector Number] = [Lv0rate, [Cartx, Carty], Rate, Rate Cutoff]
 def FindRates(dict):
+    min1, max1, min2, max2 = 100000, 0, 100000, 0
     rate_warns = []
     debug_count, debug_count2 = 0, 0
     for time_det, lv0_latlong in dict.items():
@@ -279,11 +280,29 @@ def FindRates(dict):
             if abs(rate) >= RATE_WARNING:
                 rate_warns.append((this_det, this_time))
 
+
+            if this_time >= datetime(year=2014,month=9,day=27,hour=7) and this_time <= datetime(year=2014,month=9,day=27,hour=10):
+                if str(this_det) == '1515':
+                    if rate > max1:
+                        max1 = rate
+                    if rate < min1:
+                        min1 = rate
+                    print(rate, '1515')
+            if this_time >= datetime(year=2014,month=9,day=27,hour=17) and this_time <= datetime(year=2014,month=9,day=27,hour=20):
+                if str(this_det) == '1015':
+                    if rate > max2:
+                        max2 = rate
+                    if rate < min2:
+                        min2 = rate
+
             debug_count += 1
         else:
             #if not, append 0, 0 to this time as a place holder (one for rate the other for rate cutoff)
             lv0_latlong.extend([0, 0])
             debug_count2 += 1
+
+    print(max1, min1, '1515')
+    print(max2, min2, '1015')
     print("Found " + str(debug_count) + " rates")
     print("Found " + str(debug_count2) + " points without a second hit")
     print("Total is " + str(debug_count + debug_count2) + " rates *")
@@ -565,8 +584,8 @@ def MakePlots(this_date, save):
 
     # creating the TASD plot (top left)
     TASDax = fig.add_subplot(gs_left[:3, :3])
-    TASDax.set_xlim(-25, 25)#(-20, 20)
-    TASDax.set_ylim(-28, 23)#(-23, 18)
+    TASDax.set_xlim(-50, 50)#(-20, 20)
+    TASDax.set_ylim(-50, 50)#(-23, 18)
     sp_sensors = TASDax.scatter(tasdx, tasdy, c='yellow', s=7, marker='.')
     sp_sensor_readings = TASDax.scatter([], [], c=[], s=7, cmap=cmap, norm=norm, marker='s', vmin = -30, vmax = 30)
     sp_G_lightning_readings = TASDax.scatter([], [], c='.4', s=10, marker='+')
@@ -634,7 +653,7 @@ if __name__ == "__main__":
         if (save == "y"):
 
             path = "Movies/" + str(input_date)
-            name = "RateLv0"
+            name = 'temp'#"RateLv0"
 
             if not os.path.isdir(path):
                 os.mkdir(path)

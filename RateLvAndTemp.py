@@ -57,7 +57,7 @@ from IPython.display import HTML
 
 ONED_RATE_CUTOFF = .5 # the cut off for rates taken into account for the 1D plots (inclusive cutoff, meaning if this is at .5, rates at and below .5 are NOT counted for the one D plots)
 ONED_CLOSEDETS_CUTOFF = 6 # the amount of dets that need to be above the ^ Cutoff around a 5x5 of a DET to count the DET in the 1D plots
-TIME_NLDN_IS_ON = timedelta(minutes=30) # this is the amount of time NLDN data will stay on the TASD plot once it pops up (inclusive) (also, add ten mins to get that acutal amount of time it stay up)
+TIME_NLDN_IS_ON = timedelta(minutes=20) # this is the amount of time NLDN data will stay on the TASD plot once it pops up (inclusive) (also, add ten mins to get that acutal amount of time it stay up)
 RATE_WARNING = 3 # warn the user about rates above this amount
 
 TAKE_OUT_DONTUSE = True
@@ -535,8 +535,8 @@ def MakePlots(this_date, save):
     # creating the TASD plot (top left)
     TASDax = fig.add_subplot(gs_left[:3, 0])
     TASDax.title.set_text("Rate Change")
-    TASDax.set_xlim(-20, 20)
-    TASDax.set_ylim(-23, 18)
+    TASDax.set_xlim(-25, 25) #50s
+    TASDax.set_ylim(-28, 23)
     sp_sensors = TASDax.scatter(tasdx, tasdy, c='yellow', s=7, marker='.')
     sp_sensor_readings = TASDax.scatter([], [], c=[], s=7, cmap=cmap, norm=norm, marker='s', vmin = -30, vmax = 30)
     sp_G_lightning_readings = TASDax.scatter([], [], c='.4', s=10, marker='+')
@@ -545,8 +545,8 @@ def MakePlots(this_date, save):
 
     Tempax = fig.add_subplot(gs_left[:3, 1])
     Tempax.title.set_text("Temperature Change")
-    Tempax.set_xlim(-20, 20)
-    Tempax.set_ylim(-23, 18)
+    Tempax.set_xlim(-25, 25)
+    Tempax.set_ylim(-28, 23)
     Tempax.set_yticks([])
     sp_temp_sensors = Tempax.scatter(tasdx, tasdy, c='yellow', s=7, marker='.')
     sp_temp_sensor_readings = Tempax.scatter([], [], c=[], s=7, cmap=cmap_Temp, norm=norm_Temp, marker='s', vmin = -30, vmax = 30)
