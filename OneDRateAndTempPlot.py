@@ -1,5 +1,6 @@
 import os
 from datetime import *
+import math
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -33,6 +34,7 @@ e_d = '090000'
 
 file = open("DataDates/" + inputdate + "/L0L1.txt", 'r')
 l01, l02, l03, temp1, temp2, temp3 = [], [], [], [], [], []
+yerr1, yerr2 = [], []
 times1, times2, times3 = [], [], []
 
 def Date_P2D(plain_date):
@@ -69,11 +71,13 @@ for line in file:
         l01.append(float(columns[3]))
         temp1.append(float(columns[8]))
         times1.append(datetime.combine(Date_P2D(columns[0]), (Time_P2D(columns[1]))))
+        yerr1.append( ( 1 / math.sqrt( float(columns[3]) * 60 * 10 ) ) * float(columns[3]) )
 
     if (columns[2] == det2) and (int(columns[1]) >= int(earlytime_d)) and (int(columns[1]) <= int(latetime_d)):
         l02.append(float(columns[3]))
         temp2.append(float(columns[8]))
         times2.append(datetime.combine(Date_P2D(columns[0]), (Time_P2D(columns[1]))))
+        yerr2.append( ( 1 / math.sqrt( float(columns[3]) * 60 * 10 ) ) * float(columns[3]) )
 
 file.close()
 
@@ -81,16 +85,18 @@ fig = plt.figure(constrained_layout=False)
 
 gs = fig.add_gridspec(2, 2, left=0.09, right=0.91, top=.87, bottom=0.09, wspace=0.2, hspace=0.2)
 #fig.suptitle("EAS Rate vs Tempature")
+print('yerr1', min(yerr1), max(yerr1))
+print('yerr2', min(yerr2), max(yerr2))
 
 l01ax = fig.add_subplot(gs[0, 1])
 l01ax.set_title(det1)
 l01ax.set_xticks([])
 l01ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
-l01ax.plot(times1, l01)
-l01ax.plot([markedtime_e, markedtime_e], [0, 10000])
+l01ax.errorbar(times1, l01, yerr=yerr1, zorder=2, capsize=1.5, elinewidth=1)
+l01ax.plot([markedtime_e, markedtime_e], [0, 10000], zorder=1)
 l01ax.set_xlim([datetime.combine(Date_P2D(inputdate), (Time_P2D(earlytime_e))), datetime.combine(Date_P2D(inputdate), (Time_P2D(latetime_e)))])
-l01ax.set_ylim([727, 742])
-
+l01ax.set_ylim([727, 744])
+l01ax.set_yticks([727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744])
 
 temp1ax = fig.add_subplot(gs[1, 1])
 temp1ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
@@ -105,10 +111,11 @@ l02ax = fig.add_subplot(gs[0, 0])
 l02ax.set_title(det2)
 l02ax.set_xticks([])
 l02ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
-l02ax.plot(times2, l02)
-l02ax.plot([markedtime_d, markedtime_d], [0, 10000])
+l02ax.errorbar(times2, l02, yerr=yerr2, zorder=2, capsize=1.5, elinewidth=0.8)
+l02ax.plot([markedtime_d, markedtime_d], [0, 10000], zorder=1)
 l02ax.set_xlim([datetime.combine(Date_P2D(inputdate), (Time_P2D(earlytime_d))), datetime.combine(Date_P2D(inputdate), (Time_P2D(latetime_d)))])
-l02ax.set_ylim([727, 742])
+l02ax.set_ylim([727, 744])
+l02ax.set_yticks([727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744])
 l02ax.set_ylabel('Level 0 Rate (Hz)')
 
 temp2ax = fig.add_subplot(gs[1, 0])

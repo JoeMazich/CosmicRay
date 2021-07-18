@@ -21,7 +21,7 @@ def GetDataDate(date):
             Datefile.write(line)
             Datefile.close()
     Parentfile.close()
-    
+
     '''
     if not os.path.isfile('DataDates/' + date + '/NLDN.txt'):
         open('DataDates/' + date + '/NLDN.txt', 'a')'''
@@ -29,7 +29,7 @@ def GetDataDate(date):
     for filename in os.listdir("RawData/L0L1/"):
         #Parentfile = open('RawData/L0L1/' + filename, 'r')
         flag = False
-        if filename[9:11] == date[0:2]:
+        if date[0:2] in filename:
             Parentfile = open('RawData/L0L1/' + filename, 'r')
 
             for line in Parentfile:
@@ -41,9 +41,10 @@ def GetDataDate(date):
                         #Datefile = open('DataDates/' + date + '/L0L1.txt', 'a')
                         if not os.path.isdir("DataDates/" + date):
                             os.mkdir("DataDates/" + date)
-                        Datefile = open('DataDates/' + date + '/L0L1.txt', 'a')
-                        Datefile.write(line) #line
-                        Datefile.close()
+                        if 'End' not in line:
+                            Datefile = open('DataDates/' + date + '/L0L1.txt', 'a')
+                            Datefile.write(line) #line
+                            Datefile.close()
                         flag = True
             Parentfile.close()
         if flag:

@@ -1,10 +1,12 @@
 import os
+from datetime import *
 interesting_dates = []
 
-file = open('RawData/NLDN/Raw_NLDN.txt', 'r')
+start_date = input('where should I start searching from (date)? ')
+end_date = input('where should I stop searching (dates)? ')
+nldn_activity_limit = int(input('What is the minimum nldn peak current (kA) needed to count? '))
 
-# Needs a rewrite
-# Delete all files first
+ONE_DAY = timedelta(days=1)
 
 def Date_C2P(date):
     temp = date.split("-")
@@ -19,13 +21,44 @@ def Date_P2C(date):
     day = date[4:6]
     return year + "-" + month + "-" + day
 
+def Date_P2D(plain_date):
+    year = 2000 + int(plain_date[0:2])
+    month = int(plain_date[2:4])
+    day = int(plain_date[4:6])
+    return date(year, month, day)
+
+def Date_C2D(cut_date):
+    temp = cut_date.split("-")
+    year = int(temp[0])
+    month = int(temp[1])
+    day = int(temp[2])
+    return date(year, month, day)
+
+def add_date(date):
+    if date not in interesting_dates:
+        interesting_dates.append(date)
+
+
+current_date = Date_P2D(start_date)
+
+file = open('RawData/NLDN/Raw_NLDN.txt', 'r')
+
 for line in file:
     columns = line.split()
+    line_date = Date_C2D(columns[0])
 
-    if abs(float(columns[4])) > 75 and Date_C2P(columns[0]) not in interesting_dates and (Date_C2P(columns[0])[2:4] == '12' or int(Date_C2P(columns[0])[2:4]) <= 2):
-        print(Date_C2P(columns[0]))
-        print(Date_C2P(columns[0])[2:4])
-        interesting_dates.append(Date_C2P(columns[0]))
+    if current_date > line_date:
+        pass
+    elif current_date == line_date and (abs(float(columns[4])) > nldn_activity_limit):
+        add_date(current_date)
+        current_date + ONE_DAY
+    elif current_date < line_date and line_date <= Date_P2D(end_date) :
+        current_date = line_date
+        add_date(current_date)
+        current_date + ONE_DAY
+
+    if current_date >= Date_P2D(end_date):
+        break
 
 file.close()
 
