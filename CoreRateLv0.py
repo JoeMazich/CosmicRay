@@ -584,8 +584,8 @@ def MakePlots(this_date, save):
 
     # creating the TASD plot (top left)
     TASDax = fig.add_subplot(gs_left[:3, :3])
-    TASDax.set_xlim(-50, 50)#(-20, 20)
-    TASDax.set_ylim(-50, 50)#(-23, 18)
+    TASDax.set_xlim(-20, 20)
+    TASDax.set_ylim(-23, 18)
     sp_sensors = TASDax.scatter(tasdx, tasdy, c='yellow', s=7, marker='.')
     sp_sensor_readings = TASDax.scatter([], [], c=[], s=7, cmap=cmap, norm=norm, marker='s', vmin = -30, vmax = 30)
     sp_G_lightning_readings = TASDax.scatter([], [], c='.4', s=10, marker='+')
