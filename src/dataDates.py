@@ -1,5 +1,5 @@
 from detectors import Detectors
-from DataDate import DataDate
+from dataDate import DataDate
 
                                                                                                          
 #                                                                                                         
