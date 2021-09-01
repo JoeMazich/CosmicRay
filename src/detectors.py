@@ -14,6 +14,11 @@ class Detector():
 class Detectors():
     def __init__(self) -> None:
         self._detectors = {}
+        
+        self.tasdx = []
+        self.tasdy = []
+        
+        tasdxyz([],self.tasdx,self.tasdy,[])
 
         with codecs.open('tasd_gpscoors.txt', 'rb',  'utf-8') as file: 
             for line in file.readlines():

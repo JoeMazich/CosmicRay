@@ -1,6 +1,7 @@
 from detectors import Detectors
 from dataDate import DataDate
 
+from typing import List
                                                                                                          
 #                                                                                                         
 #     ,---,                   ___                    ,---,                   ___                           
@@ -30,3 +31,9 @@ class DataDates:
     def newDataDate(self, date: str) -> None:
         newDate = DataDate(date, self._detectors)
         self._datadates[date] = newDate
+
+    # faster for loading more than one date
+    def load_dates(self, dates: List[str]) -> None:
+        pass
+
+    # make animation function to animate multiple dates in one fig??

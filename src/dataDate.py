@@ -10,11 +10,12 @@ import matplotlib.animation as animation
 from dataclasses import dataclass
 
 from pathlib import Path
-from typing import Callable, NewType, Tuple
+from typing import Callable, Tuple
 
 from detectors import Detectors
+from taTools import *
 
-import time # TEMPPP
+import time
 
 #%%
                                                                                                          
@@ -44,6 +45,16 @@ ACTIVE_WARNINGS = True
 
 TEN_MINS = dt.timedelta(minutes=10)
 
+CMAP_COLORS_TASD = ['purple', 'blue', 'cyan', 'green', 'orange', 'red', 'maroon'] # set the colors for the 2D map
+CMAP_BOUNDS_TASD = [-5, -3, -1, -0.5, 0.5, 1, 3, 5] # set the bounds for the colors on the 2D map [-5, -3, -1, -0.5, 0.5, 1, 3, 5]
+
+CMAP_COLORS_TEMP = ['#fc00b6', '#8e0da8', '#0021ff', 'cyan', 'green', 'orange', 'red', '#b60909', '#530028']
+CMAP_BOUNDS_TEMP = [-30, -5, -3, -1, -0.5, 0.5, 1, 3, 5, 30] # set the bounds for the colors on the 2D map / default is [-30, -5, -3, -1, -0.5, 0.5, 1, 3, 5, 30]
+
+ANI_SPEED = 900
+
+TIME_NLDN_IS_ON = dt.timedelta(minutes=20)
+
 @dataclass(frozen=True) # key object used to get Lv0 data
 class KeyLv0:
     event_datetime: dt.datetime
@@ -67,9 +78,10 @@ class ValLv0:
 @dataclass
 class NLDN:
     event_datetime: dt.datetime
-    position: Tuple[float, float]
+    ll_position: Tuple[float, float]
     peak_current: float
     type: str
+    cc_position: Tuple[float, float]
     def __str__(self) -> str:
         edt = self.event_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
         return f'{edt} {self.position[0]} {self.position[1]} {self.peak_current} {self.type}'
@@ -88,28 +100,31 @@ class DataDate:
 
         self.__warnings = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
-        # Check to see if the DataDate file exists
-        #   if so, load it
-        #
-        #   if not, make the DataDate file
-        #   split the raw into L0L1 and NLDN
-        #   load it
-        #   make rates
-        #   save the new data
-
         # Load everything needed - assuming there will be rates already there
         if self._file.is_dir():
             L0L1_file = self._file / 'L0L1.txt'
             NLDN_file = self._file / 'NLDN.txt'
+
+            start = time.perf_counter()
             self._load_bytes(L0L1_file, self._L0L1_parse)
+            stop = time.perf_counter()
+            load_L0L1_timing = (stop - start)
+
+            start = time.perf_counter()
             self._load_bytes(NLDN_file, self._NLDN_parse)
+            stop = time.perf_counter()
+            load_NLDN_timing = (stop - start)
+
+            print(f'Loading L0L1 took: {load_L0L1_timing} seconds\nLoading NLDN took: {load_NLDN_timing} seconds')
+
+            
         # Split raw data, load the splitted data, make the rates, save the total data, delete the splitted data
         else:
             self._warn(1, f'{self._file}, making a new one')
             Path.mkdir(self._file)
             
             start = time.perf_counter()
-            self.parseAllRaw()
+            self.parseAndLoadFromRaw()
             stop = time.perf_counter()
             parseAllRaw_timing = (stop - start)
 
@@ -124,7 +139,6 @@ class DataDate:
             save_timing = (stop - start)
 
             print(f'Parsing from raw data took: {parseAllRaw_timing} seconds\nFinding the Rates took: {findRates_timing} seconds\nSaving took: {save_timing} seconds')
-
 
     def __str__(self) -> str:
         return self.date.strftime('%Y-%m-%d')
@@ -146,9 +160,10 @@ class DataDate:
             self._warn(2, (f'({time = }, {detector = }) key in {date} data'))
             return None
 
+
     # Cut through the large data files over time and save relevant data in self.L0 and self.NLDN
-    # WILL NOT SAVE FILES
-    def parseAllRaw(self) -> None:
+    # WILL NOT SAVE FILES, WILL ERASE CURRENT self.L0 and self.NLDN
+    def parseAndLoadFromRaw(self, parseTASD = True, parseNLDN = True) -> None:
         wd = self._file.parents[1]
         raw_data_path = wd.joinpath('RawData')
 
@@ -156,11 +171,15 @@ class DataDate:
         raw_NLDN = raw_data_path / 'NLDN' / 'Raw_NLDN.txt'
 
         # Check to see if the year is in the filename (2014 -> file should have a 14 in it)
-        for raw_L0L1 in raw_L0L1_files.iterdir():
-            if str(self.date.year)[-2:] in raw_L0L1.name:
-                self._load_bytes(raw_L0L1, self._L0L1_parse, raw=True)
-      
-        self._load_bytes(raw_NLDN, self._NLDN_parse, raw=True)
+        if (parseTASD):
+            self.L0.clear()
+            for raw_L0L1 in raw_L0L1_files.iterdir():
+                if str(self.date.year)[-2:] in raw_L0L1.name:
+                    self._load_bytes(raw_L0L1, self._L0L1_parse, raw=True)
+
+        if (parseNLDN):
+            self.NLDN.clear()
+            self._load_bytes(raw_NLDN, self._NLDN_parse, raw=True)
     
     def findRates(self) -> None:
         
@@ -176,35 +195,102 @@ class DataDate:
             except Exception as e:
                 self._warn(4, f'{this_key}\n{e}\n')
 
-    def save(self, defSure=False) -> None:
+    def save(self, defSure = False, saveL0L1 = True, saveNLDN = True) -> None:
+
         imSure = False
+
         if not defSure:
-            imSure = (input('Are you sure? Previous files will be deleted and replaced with this sessions L0 and NLDN! (Y/n): ') == 'Y')
+            imSure = input('Are you sure? Previous files will be deleted and replaced with this sessions L0 and NLDN! (Y/n): ')
+
+            valid_input = ['y', 'Y', 'n', 'N']
+            while (imSure not in valid_input):
+                imSure = input('Invalid input (Y/n):')
+
+            imSure = (imSure == 'Y' or imSure == 'y')
+
         if defSure or imSure:
             L0L1_file = self._file / 'L0L1.txt'
             NLDN_file = self._file / 'NLDN.txt'
 
-            if L0L1_file.is_file():
-                try:
-                    L0L1_file.unlink()
-                except OSError as e:
-                    self._warn(0, f'Could not delete {L0L1_file}\n{e}')
+            if (saveL0L1):
+                if L0L1_file.is_file():
+                    try:
+                        L0L1_file.unlink()
+                    except OSError as e:
+                        self._warn(0, f'Could not delete {L0L1_file}\n{e}')
 
-            if NLDN_file.is_file():
-                try:
-                    NLDN_file.unlink()
-                except OSError as e:
-                    self._warn(0, f'Could not delete {NLDN_file}\n{e}')
+                with open(L0L1_file, 'w') as file:
+                    for k, v in self.L0.items():
+                        file.write(f'{k} {v}\n')
 
+            if (saveNLDN):
+                if NLDN_file.is_file():
+                    try:
+                        NLDN_file.unlink()
+                    except OSError as e:
+                        self._warn(0, f'Could not delete {NLDN_file}\n{e}')
+
+                with open(NLDN_file, 'w') as file:
+                    for v in self.NLDN:
+                        file.write(f'{v}\n')
+
+    # Make this more dynamic - choose what goes where for example
+    def animate(self) -> None:
+        
+        
+
+        def update(frame: int) -> None:
+            this_time = self.date + TEN_MINS * frame
+
+            offsets1, offsets2, colors = [], [], []
+
+            for key, value in self.L0.items():
+                if key.event_datetime == this_time and value.rate:
+                    offsets1.append(self._detectors.getCart(key.det_num))
+                    colors.append(value.rate)
+            sd_sensors_readings.set_offsets(offsets1 if offsets1 else [(None, None)])
+            sd_sensors_readings.set_array(np.asarray(colors))
+
+            offsets1.clear()
+            colors.clear()
+
+            for value in self.NLDN:
+                if value.event_datetime <= (this_time + TEN_MINS) and  value.event_datetime >= (this_time + TEN_MINS - TIME_NLDN_IS_ON):
+                    if value.type == 'C':
+                        offsets1.append(value.cc_position)
+                    elif value.type == 'G':
+                        offsets2.append(value.cc_position)
+            NLDN_C_lightning_readings.set_offsets(offsets1 if offsets1 else [(None, None)])
+            NLDN_G_lightning_readings.set_offsets(offsets2 if offsets2 else [(None, None)])
             
-            with open(L0L1_file, 'w') as file:
-                for k, v in self.L0.items():
-                    file.write(f'{k} {v}\n')
 
-            with open(NLDN_file, 'w') as file:
-                for v in self.NLDN:
-                    file.write(f'{v}\n')
+            return list_plots
 
+        fig = plt.figure()
+
+        cmap_TASD = mpl.colors.ListedColormap(CMAP_COLORS_TASD)
+        norm_TASD = mpl.colors.BoundaryNorm(CMAP_BOUNDS_TASD, cmap_TASD.N)
+
+        cmap_Temp = mpl.colors.ListedColormap(CMAP_COLORS_TEMP)
+        norm_Temp = mpl.colors.BoundaryNorm(CMAP_BOUNDS_TEMP, cmap_Temp.N)
+
+        gs = fig.add_gridspec(2, 2)
+
+        TASD_ax = fig.add_subplot(gs[0,0])
+        TASD_ax.title.set_text("Rate Change")
+        TASD_ax.set_xlim(-25, 25)
+        TASD_ax.set_ylim(-28, 23)
+        sd_sensors = TASD_ax.scatter(self._detectors.tasdx, self._detectors.tasdy, c='yellow', s=7, marker='.')
+        sd_sensors_readings = TASD_ax.scatter([], [], c=[], s=7, cmap=cmap_TASD, norm=norm_TASD, marker='s')
+        NLDN_G_lightning_readings = TASD_ax.scatter([], [], c='.4', s=10, marker='+')
+        NLDN_C_lightning_readings = TASD_ax.scatter([], [], c='black', s=10, marker='+')
+        plt.colorbar(sd_sensors_readings)
+        
+        list_plots = [sd_sensors_readings, NLDN_C_lightning_readings, NLDN_G_lightning_readings]
+
+        anim = animation.FuncAnimation(fig, update, interval=ANI_SPEED, blit=True, repeat=True, frames=144)
+
+        plt.show()
 
     # Simple loading, parser should return True if/when it can tell it is done
     def _load_bytes(self, path: Path, parser: Callable[[str], None], raw: bool = False) -> None:
@@ -258,7 +344,11 @@ class DataDate:
 
             # If line is raw and the date matches or if the line is not raw, load it into NLDN
             if (raw and (self.date.date() == event_datetime.date())) or not raw:
-                newNLDN = NLDN(event_datetime, (float(lat), float(long)), float(peak_current), type.decode('utf-8'))
+
+                gps = gp.point.Point(float(lat), float(long), 0)
+                x, y, z = gps2cart(gps)
+
+                newNLDN = NLDN(event_datetime, (float(lat), float(long)), float(peak_current), type.decode('utf-8'), (x, y))
                 self.NLDN.append(newNLDN)
             
             # If line is raw and the date is past our date, we know we can stop
@@ -268,7 +358,7 @@ class DataDate:
         except Exception as e:
             self._warn(3, f'{line}\n{e}\n')
         return False        
-
+    
 
     def _warn(self, id: int, comments: str = '') -> None:
         switcher = {
@@ -289,7 +379,9 @@ class DataDate:
 #%%
 
 if __name__ == '__main__':
-    day1 = DataDate('140928', Detectors())
+    day1 = DataDate('140927', Detectors())
+
+    day1.animate()
 
     newKey1 = KeyLv0(dt.date(2002, 12, 31), '1234')
     newKey2 = KeyLv0(dt.date(2002, 12, 31), '1234')

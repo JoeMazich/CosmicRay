@@ -503,6 +503,8 @@ def MakePlots(this_date, save):
     print("\nExtracting NLDN data...")
     C_NLDNonTASD, G_NLDNonTASD = ExtractNLDN(NLDN_dict, TimeTable)
 
+    print(temp_det_diffs[0])
+
     # Make labels for the plots
     xLabels_NLDN, xLabels_OneD  = [], []
     for i in range(13):
@@ -602,7 +604,7 @@ if __name__ == "__main__":
         input_date = input("No data for that date. Choose again, or n to stop: ")
         if input_date == "n":
             break
-    if input_date is not "n":
+    if input_date != "n":
         animation = MakePlots(input_date, False)
 
         plt.show()
