@@ -1,49 +1,46 @@
 #%%
-import geopy as gp
-import numpy as np
 import datetime as dt
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-
+import time
 from dataclasses import dataclass
-
 from pathlib import Path
 from typing import Callable, Tuple
+
+import geopy as gp
+import matplotlib as mpl
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
 
 from detectors import Detectors
 from taTools import *
 
-import time
-
 #%%
-                                                                                                         
-#                                                                                                         
-#     ,---,                   ___                    ,---,                   ___                           
-#   .'  .' `\               ,--.'|_                .'  .' `\               ,--.'|_                         
-# ,---.'     \              |  | :,'             ,---.'     \              |  | :,'                        
-# |   |  .`\  |             :  : ' :             |   |  .`\  |             :  : ' :                
-# :   : |  '  |  ,--.--.  .;__,'  /    ,--.--.   :   : |  '  |  ,--.--.  .;__,'  /     ,---.     
-# |   ' '  ;  : /       \ |  |   |    /       \  |   ' '  ;  : /       \ |  |   |     /     \  
-# '   | ;  .  |.--.  .-. |:__,'| :   .--.  .-. | '   | ;  .  |.--.  .-. |:__,'| :    /    /  |   
-# |   | :  |  ' \__\/: . .  '  : |__  \__\/: . . |   | :  |  ' \__\/: . .  '  : |__ .    ' / | 
-# '   : | /  ;  ," .--.; |  |  | '.'| ," .--.; | '   : | /  ;  ," .--.; |  |  | '.'|'   ;   /|
-# |   | '` ,/  /  /  ,.  |  ;  :    ;/  /  ,.  | |   | '` ,/  /  /  ,.  |  ;  :    ;'   |  / |
-# ;   :  .'   ;  :   .'   \ |  ,   /;  :   .'   \;   :  .'   ;  :   .'   \ |  ,   / |   :    |
-# |   ,.'     |  ,     .-./  ---`-' |  ,     .-./|   ,.'     |  ,     .-./  ---`-'   \   \  /   
-# '---'        `--`---'              `--`---'    '---'        `--`---'                `----'               
-#                                                                                   *with python 3.8
-#
-#
 
-# self._detectors.getCart(det_num)
+#                                                                                                           
+#     ,---,                   ___                    ,---,                   ___                            
+#   .'  .' `\               ,--.'|_                .'  .' `\               ,--.'|_                          
+# ,---.'     \              |  | :,'             ,---.'     \              |  | :,'                         
+# |   |  .`\  |             :  : ' :             |   |  .`\  |             :  : ' :                         
+# :   : |  '  |  ,--.--.  .;__,'  /    ,--.--.   :   : |  '  |  ,--.--.  .;__,'  /     ,---.                
+# |   ' '  ;  : /       \ |  |   |    /       \  |   ' '  ;  : /       \ |  |   |     /     \               
+# '   | ;  .  |.--.  .-. |:__,'| :   .--.  .-. | '   | ;  .  |.--.  .-. |:__,'| :    /    /  |              
+# |   | :  |  ' \__\/: . .  '  : |__  \__\/: . . |   | :  |  ' \__\/: . .  '  : |__ .    ' / |              
+# '   : | /  ;  ," .--.; |  |  | '.'| ," .--.; | '   : | /  ;  ," .--.; |  |  | '.'|'   ;   /|              
+# |   | '` ,/  /  /  ,.  |  ;  :    ;/  /  ,.  | |   | '` ,/  /  /  ,.  |  ;  :    ;'   |  / |              
+# ;   :  .'   ;  :   .'   \ |  ,   /;  :   .'   \;   :  .'   ;  :   .'   \ |  ,   / |   :    |              
+# |   ,.'     |  ,     .-./  ---`-' |  ,     .-./|   ,.'     |  ,     .-./  ---`-'   \   \  /               
+# '---'        `--`---'              `--`---'    '---'        `--`---'                `----'                
+#                                                                                   *with python 3.8        
+#                                                                                                           
+
+# Todo: refactor parsing logic for NLDN
 
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
 ACTIVE_WARNINGS = True
 
 TEN_MINS = dt.timedelta(minutes=10)
+TWO_HOURS = dt.timedelta(hours=2)
 
 CMAP_COLORS_TASD = ['purple', 'blue', 'cyan', 'green', 'orange', 'red', 'maroon'] # set the colors for the 2D map
 CMAP_BOUNDS_TASD = [-5, -3, -1, -0.5, 0.5, 1, 3, 5] # set the bounds for the colors on the 2D map [-5, -3, -1, -0.5, 0.5, 1, 3, 5]
@@ -59,6 +56,7 @@ TIME_NLDN_IS_ON = dt.timedelta(minutes=20)
 class KeyLv0:
     event_datetime: dt.datetime
     det_num: str
+    
     def __str__(self) -> str:
         edt = self.event_datetime.strftime('%y%m%d %H%M%S')
         return f'{edt} {self.det_num}'
@@ -71,9 +69,11 @@ class ValLv0:
     warning: int
     quality: int
     tempature: float
-    rate: float = None
+    lv0_rate: float = None
+    tempature_rate: float = None
+    
     def __str__(self) -> str:
-        return f'{self.lv0} {self.lv1} {self.dontuse} {self.warning} {self.quality} {self.tempature} {self.rate}'
+        return f'{self.lv0} {self.lv1} {self.dontuse} {self.warning} {self.quality} {self.tempature} {self.lv0_rate} {self.tempature_rate}'
 
 @dataclass
 class NLDN:
@@ -82,12 +82,15 @@ class NLDN:
     peak_current: float
     type: str
     cc_position: Tuple[float, float]
+    
     def __str__(self) -> str:
         edt = self.event_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
-        return f'{edt} {self.position[0]} {self.position[1]} {self.peak_current} {self.type}'
+        return f'{edt} {self.ll_position[0]} {self.ll_position[1]} {self.peak_current} {self.type}'
+
 #%%
 
 class DataDate:
+    
     def __init__(self, date: str, detectors: Detectors) -> None:
 
         self.date = dt.datetime.strptime(date, '%y%m%d')
@@ -98,7 +101,7 @@ class DataDate:
         self._file = parent_dir.joinpath(f'DataDates/{date}')
         self._detectors = detectors
 
-        self.__warnings = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+        self.__warnings = { 1: [], 2: [], 3: [], 4: [], 10: [], 11: [], 20: [], 21: []}
 
         # Load everything needed - assuming there will be rates already there
         if self._file.is_dir():
@@ -120,7 +123,7 @@ class DataDate:
             
         # Split raw data, load the splitted data, make the rates, save the total data, delete the splitted data
         else:
-            self._warn(1, f'{self._file}, making a new one')
+            self._warn(2, f'{self._file}, making a new one')
             Path.mkdir(self._file)
             
             start = time.perf_counter()
@@ -157,7 +160,7 @@ class DataDate:
             detector = id[1]
             date = self.date.strftime('%Y-%m-%d')
 
-            self._warn(2, (f'({time = }, {detector = }) key in {date} data'))
+            self._warn(3, (f'({time = }, {detector = }) key in {date} data'))
             return None
 
 
@@ -180,20 +183,31 @@ class DataDate:
         if (parseNLDN):
             self.NLDN.clear()
             self._load_bytes(raw_NLDN, self._NLDN_parse, raw=True)
-    
+
     def findRates(self) -> None:
-        
+
         for this_key, this in self.L0.items():
             previous_key = KeyLv0(this_key.event_datetime - TEN_MINS, this_key.det_num)
-            try:
+            
+            try: # Get lv0 rate
                 if previous_key in self.L0.keys():
                     previous = self.L0[previous_key]
 
-                    this.rate = ((this.lv0 - previous.lv0) / previous.lv0) * 100
+                    this.lv0_rate = ((this.lv0 - previous.lv0) / previous.lv0) * 100
                 else:
-                    self._warn(5, f'{this_key}')
+                    self._warn(11, f'{this_key}')
             except Exception as e:
-                self._warn(4, f'{this_key}\n{e}\n')
+                self._warn(10, f'{this_key}\n{e}\n')
+            
+            try: # Get tempature rate
+                if previous_key in self.L0.keys():
+                    previous = self.L0[previous_key]
+
+                    this.tempature_rate = this.tempature - previous.tempature
+                else:
+                    self._warn(21, f'{this_key}')
+            except Exception as e:
+                self._warn(20, f'{this_key}\n{e}\n')
 
     def save(self, defSure = False, saveL0L1 = True, saveNLDN = True) -> None:
 
@@ -217,7 +231,7 @@ class DataDate:
                     try:
                         L0L1_file.unlink()
                     except OSError as e:
-                        self._warn(0, f'Could not delete {L0L1_file}\n{e}')
+                        self._warn(1, f'Could not delete {L0L1_file}\n{e}')
 
                 with open(L0L1_file, 'w') as file:
                     for k, v in self.L0.items():
@@ -228,45 +242,56 @@ class DataDate:
                     try:
                         NLDN_file.unlink()
                     except OSError as e:
-                        self._warn(0, f'Could not delete {NLDN_file}\n{e}')
+                        self._warn(1, f'Could not delete {NLDN_file}\n{e}')
 
                 with open(NLDN_file, 'w') as file:
                     for v in self.NLDN:
                         file.write(f'{v}\n')
 
-    # Make this more dynamic - choose what goes where for example
+    # Todo: Make this more dynamic - choose what goes where for example
     def animate(self) -> None:
-        
-        
 
         def update(frame: int) -> None:
             this_time = self.date + TEN_MINS * frame
+            y = np.linspace(-250, 250)
 
-            offsets1, offsets2, colors = [], [], []
+            offsets, colors_TASD, colors_Temp = [], [], []
+            NLDN_offsets_C, NLDN_offsets_G = [], []
 
+            # Todo: offsets for temp alone and find temp rates - add temp rates to files and loads and parsers
             for key, value in self.L0.items():
-                if key.event_datetime == this_time and value.rate:
-                    offsets1.append(self._detectors.getCart(key.det_num))
-                    colors.append(value.rate)
-            sd_sensors_readings.set_offsets(offsets1 if offsets1 else [(None, None)])
-            sd_sensors_readings.set_array(np.asarray(colors))
+                if key.event_datetime == this_time and value.lv0_rate:
+                    offsets.append(self._detectors.getCart(key.det_num))
+                    
+                    colors_TASD.append(value.lv0_rate)
+                    colors_Temp.append(value.tempature_rate)
+                    
+            sd_sensors_readings_TASD.set_offsets(offsets if offsets else [(None, None)])
+            sd_sensors_readings_Temp.set_offsets(offsets if offsets else [(None, None)])
+            
+            sd_sensors_readings_TASD.set_array(np.asarray(colors_TASD))
+            sd_sensors_readings_Temp.set_array(np.asarray(colors_Temp))
 
-            offsets1.clear()
-            colors.clear()
 
             for value in self.NLDN:
-                if value.event_datetime <= (this_time + TEN_MINS) and  value.event_datetime >= (this_time + TEN_MINS - TIME_NLDN_IS_ON):
+                if value.event_datetime <= (this_time + TEN_MINS) and value.event_datetime >= (this_time + TEN_MINS - TIME_NLDN_IS_ON):
                     if value.type == 'C':
-                        offsets1.append(value.cc_position)
+                        NLDN_offsets_C.append(value.cc_position)
                     elif value.type == 'G':
-                        offsets2.append(value.cc_position)
-            NLDN_C_lightning_readings.set_offsets(offsets1 if offsets1 else [(None, None)])
-            NLDN_G_lightning_readings.set_offsets(offsets2 if offsets2 else [(None, None)])
+                        NLDN_offsets_G.append(value.cc_position)
+                        
+            NLDN_C_lightning_readings_TASD.set_offsets(NLDN_offsets_C if NLDN_offsets_C else [(None, None)])
+            NLDN_G_lightning_readings_TASD.set_offsets(NLDN_offsets_G if NLDN_offsets_G else [(None, None)])
             
+            NLDN_C_lightning_readings_Temp.set_offsets(NLDN_offsets_C if NLDN_offsets_C else [(None, None)])
+            NLDN_G_lightning_readings_Temp.set_offsets(NLDN_offsets_G if NLDN_offsets_G else [(None, None)])
+            
+            NLDN_time_counter.set_data(this_time, y)
 
             return list_plots
 
-        fig = plt.figure()
+        fig = plt.figure(figsize=(10, 8))
+        fig.suptitle(self.date.date(), fontsize=20)
 
         cmap_TASD = mpl.colors.ListedColormap(CMAP_COLORS_TASD)
         norm_TASD = mpl.colors.BoundaryNorm(CMAP_BOUNDS_TASD, cmap_TASD.N)
@@ -280,17 +305,78 @@ class DataDate:
         TASD_ax.title.set_text("Rate Change")
         TASD_ax.set_xlim(-25, 25)
         TASD_ax.set_ylim(-28, 23)
-        sd_sensors = TASD_ax.scatter(self._detectors.tasdx, self._detectors.tasdy, c='yellow', s=7, marker='.')
-        sd_sensors_readings = TASD_ax.scatter([], [], c=[], s=7, cmap=cmap_TASD, norm=norm_TASD, marker='s')
-        NLDN_G_lightning_readings = TASD_ax.scatter([], [], c='.4', s=10, marker='+')
-        NLDN_C_lightning_readings = TASD_ax.scatter([], [], c='black', s=10, marker='+')
-        plt.colorbar(sd_sensors_readings)
+        sd_sensors_TASD = TASD_ax.scatter(self._detectors.tasdx, self._detectors.tasdy, c='yellow', s=7, marker='.')
+        sd_sensors_readings_TASD = TASD_ax.scatter([], [], c=[], s=7, cmap=cmap_TASD, norm=norm_TASD, marker='s')
+        NLDN_G_lightning_readings_TASD = TASD_ax.scatter([], [], c='.4', s=10, marker='+')
+        NLDN_C_lightning_readings_TASD = TASD_ax.scatter([], [], c='black', s=10, marker='+')
+        plt.colorbar(sd_sensors_readings_TASD)
         
-        list_plots = [sd_sensors_readings, NLDN_C_lightning_readings, NLDN_G_lightning_readings]
+        Temp_ax = fig.add_subplot(gs[0, 1])
+        Temp_ax.title.set_text("Tempature Change")
+        Temp_ax.set_xlim(-25, 25)
+        Temp_ax.set_ylim(-28, 23)
+        Temp_ax.set_yticks([])
+        Temp_ax.scatter(self._detectors.tasdx, self._detectors.tasdy, c='yellow', s=7, marker='.')
+        sd_sensors_readings_Temp = Temp_ax.scatter([], [], c=[], s=7, cmap=cmap_Temp, norm=norm_Temp, marker='s')
+        NLDN_G_lightning_readings_Temp = Temp_ax.scatter([], [], c='.4', s=10, marker='+')
+        NLDN_C_lightning_readings_Temp = Temp_ax.scatter([], [], c='black', s=10, marker='+')
+        plt.colorbar(sd_sensors_readings_Temp)
+        
+        # NLDN Plot
+        G_times, C_times, G_peak_currents, C_peak_currents = [], [], [], []
+        
+        for event in self.NLDN:
+            if event.type == 'G':
+                G_times.append(event.event_datetime)
+                G_peak_currents.append(event.peak_current)
+            elif event.type == 'C':
+                C_times.append(event.event_datetime)
+                C_peak_currents.append(event.peak_current)
+        
+        LastHour = self.date + dt.timedelta(days=1)
+        
+        xLabels_NLDN  = []
+        for i in range(13):
+            xLabels_NLDN.append(self.date + i * TWO_HOURS)
+        
+        NLDN_ax = fig.add_subplot(gs[1, 0:])
+        NLDN_ax.grid(True)
+        NLDN_ax.set_xlim(self.date, LastHour)
+        NLDN_ax.set_ylim(-250, 250)
+        NLDN_ax.set_xticks(xLabels_NLDN)
+        NLDN_ax.set_xlabel("Time")
+        NLDN_ax.set_ylabel("Peak Current")
+        NLDN_ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
+        NLDN_ax.scatter(G_times, G_peak_currents, c='.4', s=7, marker='+', label="G Events")
+        NLDN_ax.scatter(C_times, C_peak_currents, c='black', s=7, marker='+', label="C Events")
+        NLDN_time_counter, = NLDN_ax.plot([], [], lw=1, c='blue')
+        NLDN_ax.legend(prop={"size":5})
+        
+        
+        list_plots = [sd_sensors_readings_TASD, NLDN_C_lightning_readings_TASD, NLDN_G_lightning_readings_TASD, \
+            sd_sensors_readings_Temp, NLDN_C_lightning_readings_Temp, NLDN_G_lightning_readings_Temp, \
+            NLDN_time_counter]
 
         anim = animation.FuncAnimation(fig, update, interval=ANI_SPEED, blit=True, repeat=True, frames=144)
 
         plt.show()
+        
+        save_path = Path(__file__).resolve().parents[1] / 'Movies' / self.date.strftime('%y%m%d')
+        
+        if not save_path.is_dir():
+            Path.mkdir(save_path)
+
+        file = str(self.date.date()) + '.mov'
+        
+        print()
+        save_movie = input('Save this movie? (Y/n): ')
+        answers = ['Y', 'y', 'N', 'n']
+        while save_movie not in answers:
+            save_movie = input('Invalid response (Y/N): ')
+            
+        if save_movie == 'Y' or save_movie == 'y':
+            writer_video = animation.FFMpegWriter(fps=2) 
+            anim.save(save_path / file, writer=writer_video)
 
     # Simple loading, parser should return True if/when it can tell it is done
     def _load_bytes(self, path: Path, parser: Callable[[str], None], raw: bool = False) -> None:
@@ -322,21 +408,22 @@ class DataDate:
             # If not raw data, we know we got the rate, etc.
             elif not raw and (not TAKE_OUT_DONTUSE or dontuse == b'0') and (not TAKE_OUT_WARN or warning == b'0'):
 
-                rate = (float(data[9]) if data[9] != b'None' else None)
+                lv0_rate = (float(data[9]) if data[9] != b'None' else None)
+                tempature_rate = (float(data[10]) if data[10] != b'None' else None)
 
                 event_datetime = dt.datetime.strptime((event_date + event_time).decode('utf-8'), '%y%m%d%H%M%S')
                 newKey = KeyLv0(event_datetime, det_num.decode('utf-8'))
-                newVal = ValLv0(float(lv0), float(lv1), int(dontuse), int(warning), int(quality), float(temp), rate)
+                newVal = ValLv0(float(lv0), float(lv1), int(dontuse), int(warning), int(quality), float(temp), lv0_rate, tempature_rate)
                 self.L0[newKey] = newVal
                 return False
 
         # If Exception is raised
         except Exception as e:
-            self._warn(3, f'{line}\n{e}\n') # warn user
+            self._warn(4, f'{line}\n{e}\n') # warn user
 
         # But assume that we are not done parsing
         return False
-    
+
     def _NLDN_parse(self, line: str, raw: bool) -> bool:
         try:
             event_date, event_time, lat, long, peak_current, type = line.split()
@@ -356,32 +443,30 @@ class DataDate:
                 return True
 
         except Exception as e:
-            self._warn(3, f'{line}\n{e}\n')
+            self._warn(4, f'{line}\n{e}\n')
         return False        
-    
+
 
     def _warn(self, id: int, comments: str = '') -> None:
         switcher = {
-            0: 'Critical Error: ',
-            1: 'Could not find file: ',
-            2: 'Could not find data: ',
-            3: 'Parser failed parsing line: ',
-            4: 'Could not make rate: ',
-            5: 'Could not find previous lv0: ',
+            1: 'Critical Warning: ',
+            2: 'Could not find file: ',
+            3: 'Could not find data: ',
+            4: 'Parser failed parsing line: ',
+            10: 'Could not make lv0 rate: ',
+            11: 'Could not find previous lv0: ',
+            20: 'Could not make tempature rate: ',
+            21: 'Could not find previous tempature: ',
         }
         warning = switcher.get(id) + comments + '\n'
         self.__warnings[id].append(warning)
 
         if ACTIVE_WARNINGS or id == 0:
             print(warning)
-    
 
 #%%
 
 if __name__ == '__main__':
-    day1 = DataDate('140927', Detectors())
+    day1 = DataDate('140928', Detectors())
 
     day1.animate()
-
-    newKey1 = KeyLv0(dt.date(2002, 12, 31), '1234')
-    newKey2 = KeyLv0(dt.date(2002, 12, 31), '1234')
