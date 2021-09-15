@@ -40,7 +40,7 @@ from taTools import *
 #                                                                                   *with python 3.8        
 #                                                                                                           
 
-# Todo: refactor parsing logic for NLDN
+# Todo: generalize command structure
 
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
@@ -88,11 +88,11 @@ class NLDN:
     ll_position: Tuple[float, float]
     peak_current: float
     type: str
-    cc_position: Tuple[float, float]
+    cc_position: Tuple[float, float] = None
     
     def __str__(self) -> str:
         edt = self.event_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
-        return f'{edt} {self.ll_position[0]} {self.ll_position[1]} {self.peak_current} {self.type}'
+        return f'{edt} {self.ll_position[0]} {self.ll_position[1]} {self.peak_current} {self.type} {self.cc_position[0]} {self.cc_position[1]}'
 
 #%%
 
@@ -217,6 +217,13 @@ class DataDate:
                     self._warn(21, f'{this_key}')
             except Exception as e:
                 self._warn(20, f'{this_key}\n{e}\n')
+
+    def findNLDNcoords(self) -> None:
+        for event in self.NLDN:
+            gps = gp.point.Point(event.ll_position[0], event.ll_position[1], 0)
+            x, y, z = gps2cart(gps)
+            
+            event.cc_position = (x, y)
 
     def save(self, defSure = False, saveL0L1 = True, saveNLDN = True) -> None:
 
@@ -397,6 +404,7 @@ class DataDate:
             with alive_bar(file_length,title=path.name, monitor=False, bar='classic', spinner='twirl') as bar:
                 for line in file_lines:
                     if parser(line, raw):
+                        print('Found everything early')
                         break
                     bar()
         
@@ -406,6 +414,7 @@ class DataDate:
             data = line.split()
             event_date, event_time, det_num, lv0, lv1, dontuse, warning, quality, temp = data[:9]
             event_datetime = dt.datetime.strptime((event_date + event_time).decode('utf-8'), '%y%m%d%H%M%S')
+            
             # If parsing from raw data lines, we find a date that matches
             if raw and (self.date.date() == event_datetime.date()):
                 # add it to the L0 dict
@@ -414,19 +423,15 @@ class DataDate:
                 self.L0[newKey] = newVal
                 return False
 
-                # Issue with this simple speed up - data errors can make some dates look like true dates later - 2052 date was found in 2014 file
-                '''# If parsing from raw data lines, and we find a date that occurse after ours
-                elif raw and self.date.date() < event_datetime.date():
-                    print(self.date.date(), event_datetime.date())
-                    # We are done because the data is ordered
-                    return True'''
-
-            # If not raw data, we know we got the rate, etc.
+            # If not raw data
             elif not raw and (not TAKE_OUT_DONTUSE or dontuse == b'0') and (not TAKE_OUT_WARN or warning == b'0'):
 
-                lv0_rate = (float(data[9]) if data[9] != b'None' else None)
-                tempature_rate = (float(data[10]) if data[10] != b'None' else None)
-
+                try:
+                    lv0_rate = (float(data[9]) if data[9] != b'None' else None)
+                    tempature_rate = (float(data[10]) if data[10] != b'None' else None)
+                except:
+                    lv0_rate, tempature_rate = None, None
+                
                 event_datetime = dt.datetime.strptime((event_date + event_time).decode('utf-8'), '%y%m%d%H%M%S')
                 newKey = KeyLv0(event_datetime, det_num.decode('utf-8'))
                 newVal = ValLv0(float(lv0), float(lv1), int(dontuse), int(warning), int(quality), float(temp), lv0_rate, tempature_rate)
@@ -442,11 +447,12 @@ class DataDate:
 
     def _NLDN_parse(self, line: str, raw: bool) -> bool:
         try:
-            event_date, event_time, lat, long, peak_current, type = line.split()
+            data = line.split()
+            event_date, event_time, lat, long, peak_current, type = data[:6]
             event_datetime = dt.datetime.strptime((event_date + event_time[:14]).decode('utf-8'), '%Y-%m-%d%H:%M:%S.%f')
 
-            # If line is raw and the date matches or if the line is not raw, load it into NLDN
-            if (raw and (self.date.date() == event_datetime.date())) or not raw:
+            # If line is raw and the date matches
+            if raw and (self.date.date() == event_datetime.date()):
 
                 gps = gp.point.Point(float(lat), float(long), 0)
                 x, y, z = gps2cart(gps)
@@ -457,6 +463,16 @@ class DataDate:
             # If line is raw and the date is past our date, we know we can stop
             elif raw and self.date.date() < event_datetime.date():
                 return True
+            
+            elif not raw:
+                
+                try:
+                    cc_position = (float(data[6]), float(data[7]))
+                except:
+                    cc_position = (None, None)
+                
+                newNLDN = NLDN(event_datetime, (float(lat), float(long)), float(peak_current), type.decode('utf-8'), cc_position)
+                self.NLDN.append(newNLDN)
 
         except Exception as e:
             self._warn(4, f'{line}\n{e}\n')
@@ -485,7 +501,7 @@ class DataDate:
 if __name__ == '__main__':
     day = DataDate(input('What date? '), Detectors())
     
-    command_completer = WordCompleter(['exit', 'findRates', 'animate', 'loadRaw', 'save', 'clear'])
+    command_completer = WordCompleter(['exit', 'findRates', 'animate', 'loadRaw', 'save', 'clear', 'printl0', 'printNLDN', 'loadRaw TASD', 'loadRaw NLDN', 'findNLDNcoors'])
     
     while True:
         user_input = prompt(u'D> ',
@@ -498,11 +514,19 @@ if __name__ == '__main__':
             break
         elif user_input == 'findRates':
             day.findRates()
+        elif user_input == 'findNLDNcoors':
+            day.findNLDNcoords()
         elif user_input == 'animate':
             day.animate()
         elif user_input == 'loadRaw':
-            print('You may want to save after doing this!')
+            print('You may want to find rates and save after doing this!')
             day.parseAndLoadFromRaw()
+        elif user_input == 'loadRaw NLDN':
+            print('You may want to find rates and save after doing this!')
+            day.parseAndLoadFromRaw(parseTASD=False)
+        elif user_input == 'loadRaw TASD':
+            print('You may want to find rates and save after doing this!')
+            day.parseAndLoadFromRaw(parseNLDN=False)
         elif user_input == 'save':
             day.save()
         elif user_input == 'clear':
@@ -510,5 +534,11 @@ if __name__ == '__main__':
                 os.system('clear')
             elif platform == 'win32':
                 os.system('cls')
+        elif user_input == 'printl0':
+            for key, value in day.L0.items():
+                print(key, value)
+        elif user_input == 'printNLDN':
+            for item in day.NLDN:
+                print(item)
         else:
             print('Invalid command')
