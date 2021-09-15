@@ -1,8 +1,10 @@
 #%%
 import datetime as dt
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from sys import platform
 from typing import Callable, Tuple
 
 import geopy as gp
@@ -10,6 +12,11 @@ import matplotlib as mpl
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+from alive_progress import alive_bar
+from prompt_toolkit import prompt
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.history import FileHistory
 
 from detectors import Detectors
 from taTools import *
@@ -37,7 +44,7 @@ from taTools import *
 
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
-ACTIVE_WARNINGS = True
+ACTIVE_WARNINGS = False
 
 TEN_MINS = dt.timedelta(minutes=10)
 TWO_HOURS = dt.timedelta(hours=2)
@@ -100,14 +107,16 @@ class DataDate:
         parent_dir = Path(__file__).resolve().parents[1]
         self._file = parent_dir.joinpath(f'DataDates/{date}')
         self._detectors = detectors
-
+            
         self.__warnings = { 1: [], 2: [], 3: [], 4: [], 10: [], 11: [], 20: [], 21: []}
+
+        print('Loading date')
 
         # Load everything needed - assuming there will be rates already there
         if self._file.is_dir():
             L0L1_file = self._file / 'L0L1.txt'
             NLDN_file = self._file / 'NLDN.txt'
-
+            
             start = time.perf_counter()
             self._load_bytes(L0L1_file, self._L0L1_parse)
             stop = time.perf_counter()
@@ -118,7 +127,7 @@ class DataDate:
             stop = time.perf_counter()
             load_NLDN_timing = (stop - start)
 
-            print(f'Loading L0L1 took: {load_L0L1_timing} seconds\nLoading NLDN took: {load_NLDN_timing} seconds')
+            #print(f'Loading L0L1 took: {load_L0L1_timing} seconds\nLoading NLDN took: {load_NLDN_timing} seconds')
 
             
         # Split raw data, load the splitted data, make the rates, save the total data, delete the splitted data
@@ -380,10 +389,17 @@ class DataDate:
 
     # Simple loading, parser should return True if/when it can tell it is done
     def _load_bytes(self, path: Path, parser: Callable[[str], None], raw: bool = False) -> None:
+        
         with open(path, 'rb') as file:
-            for line in file.readlines():
-                if parser(line, raw):
-                    break
+            file_lines = file.readlines()
+            file_length = len(file_lines)
+            
+            with alive_bar(file_length,title=path.name, monitor=False, bar='classic', spinner='twirl') as bar:
+                for line in file_lines:
+                    if parser(line, raw):
+                        break
+                    bar()
+        
 
     def _L0L1_parse(self, line: str, raw: bool) -> bool:
         try:
@@ -467,6 +483,32 @@ class DataDate:
 #%%
 
 if __name__ == '__main__':
-    day1 = DataDate('140928', Detectors())
-
-    day1.animate()
+    day = DataDate(input('What date? '), Detectors())
+    
+    command_completer = WordCompleter(['exit', 'findRates', 'animate', 'loadRaw', 'save', 'clear'])
+    
+    while True:
+        user_input = prompt(u'D> ',
+                            history=FileHistory('history.txt'),
+                            auto_suggest=AutoSuggestFromHistory(),
+                            completer=command_completer
+                            )
+        
+        if user_input == 'exit':
+            break
+        elif user_input == 'findRates':
+            day.findRates()
+        elif user_input == 'animate':
+            day.animate()
+        elif user_input == 'loadRaw':
+            print('You may want to save after doing this!')
+            day.parseAndLoadFromRaw()
+        elif user_input == 'save':
+            day.save()
+        elif user_input == 'clear':
+            if platform == 'linux' or platform == 'linux2' or platform == 'darwin':
+                os.system('clear')
+            elif platform == 'win32':
+                os.system('cls')
+        else:
+            print('Invalid command')
