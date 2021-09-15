@@ -1,3 +1,5 @@
-matplotlib
 geopy
+matplotlib
 numpy
+alive_progress
+prompt_toolkit
