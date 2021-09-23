@@ -1,10 +1,10 @@
 #%%
 import datetime as dt
 import os
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from sys import platform
 from typing import Callable, Tuple
 
 import geopy as gp
@@ -98,9 +98,14 @@ class NLDN:
 
 class DataDate:
     
-    def __init__(self, date: str, detectors: Detectors) -> None:
+    def __init__(self, date: str, detectors: Detectors, man_load = False) -> None:
 
-        self.date = dt.datetime.strptime(date, '%y%m%d')
+        try:
+            self.date = dt.datetime.strptime(date, '%y%m%d')
+        except ValueError:
+            print('Invalid date entered')
+            sys.exit()
+            
         self.L0 = {}
         self.NLDN = []
 
@@ -110,28 +115,25 @@ class DataDate:
             
         self.__warnings = { 1: [], 2: [], 3: [], 4: [], 10: [], 11: [], 20: [], 21: []}
 
-        print('Loading date')
-
         # Load everything needed - assuming there will be rates already there
-        if self._file.is_dir():
+        if self._file.is_dir() and not man_load:
             L0L1_file = self._file / 'L0L1.txt'
             NLDN_file = self._file / 'NLDN.txt'
             
             start = time.perf_counter()
-            self._load_bytes(L0L1_file, self._L0L1_parse)
+            self._load_bytes(L0L1_file, self.L0L1_parse)
             stop = time.perf_counter()
             load_L0L1_timing = (stop - start)
 
             start = time.perf_counter()
-            self._load_bytes(NLDN_file, self._NLDN_parse)
+            self._load_bytes(NLDN_file, self.NLDN_parse)
             stop = time.perf_counter()
             load_NLDN_timing = (stop - start)
 
             #print(f'Loading L0L1 took: {load_L0L1_timing} seconds\nLoading NLDN took: {load_NLDN_timing} seconds')
 
-            
         # Split raw data, load the splitted data, make the rates, save the total data, delete the splitted data
-        else:
+        elif not man_load:
             self._warn(2, f'{self._file}, making a new one')
             Path.mkdir(self._file)
             
@@ -150,10 +152,11 @@ class DataDate:
             stop = time.perf_counter()
             save_timing = (stop - start)
 
-            print(f'Parsing from raw data took: {parseAllRaw_timing} seconds\nFinding the Rates took: {findRates_timing} seconds\nSaving took: {save_timing} seconds')
+            #print(f'Parsing from raw data took: {parseAllRaw_timing} seconds\nFinding the Rates took: {findRates_timing} seconds\nSaving took: {save_timing} seconds')
 
     def __str__(self) -> str:
-        return self.date.strftime('%Y-%m-%d')
+        this_date = self.date.strftime('%Y-%m-%d')
+        return 'DataDate Obj: ' + this_date
 
     def __len__(self) -> int:
         # Number of points we have in the dataset for the day
@@ -187,11 +190,11 @@ class DataDate:
             self.L0.clear()
             for raw_L0L1 in raw_L0L1_files.iterdir():
                 if str(self.date.year)[-2:] in raw_L0L1.name:
-                    self._load_bytes(raw_L0L1, self._L0L1_parse, raw=True)
+                    self._load_bytes(raw_L0L1, self.L0L1_parse, raw=True)
 
         if (parseNLDN):
             self.NLDN.clear()
-            self._load_bytes(raw_NLDN, self._NLDN_parse, raw=True)
+            self._load_bytes(raw_NLDN, self.NLDN_parse, raw=True)
 
     def findRates(self) -> None:
 
@@ -401,7 +404,7 @@ class DataDate:
             file_lines = file.readlines()
             file_length = len(file_lines)
             
-            with alive_bar(file_length,title=path.name, monitor=False, bar='classic', spinner='twirl') as bar:
+            with alive_bar(file_length, title=path.name, monitor=False, bar='classic', spinner='twirl') as bar:
                 for line in file_lines:
                     if parser(line, raw):
                         print('Found everything early')
@@ -409,7 +412,7 @@ class DataDate:
                     bar()
         
 
-    def _L0L1_parse(self, line: str, raw: bool) -> bool:
+    def L0L1_parse(self, line: str, raw: bool) -> bool:
         try:
             data = line.split()
             event_date, event_time, det_num, lv0, lv1, dontuse, warning, quality, temp = data[:9]
@@ -445,7 +448,7 @@ class DataDate:
         # But assume that we are not done parsing
         return False
 
-    def _NLDN_parse(self, line: str, raw: bool) -> bool:
+    def NLDN_parse(self, line: str, raw: bool) -> bool:
         try:
             data = line.split()
             event_date, event_time, lat, long, peak_current, type = data[:6]
@@ -493,7 +496,7 @@ class DataDate:
         warning = switcher.get(id) + comments + '\n'
         self.__warnings[id].append(warning)
 
-        if ACTIVE_WARNINGS or id == 0:
+        if ACTIVE_WARNINGS or id == 1:
             print(warning)
 
 #%%
@@ -530,9 +533,9 @@ if __name__ == '__main__':
         elif user_input == 'save':
             day.save()
         elif user_input == 'clear':
-            if platform == 'linux' or platform == 'linux2' or platform == 'darwin':
+            if sys.platform == 'linux' or sys.platform == 'linux2' or sys.platform == 'darwin':
                 os.system('clear')
-            elif platform == 'win32':
+            elif sys.platform == 'win32':
                 os.system('cls')
         elif user_input == 'printl0':
             for key, value in day.L0.items():

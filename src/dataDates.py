@@ -1,8 +1,12 @@
-from detectors import Detectors
-from dataDate import DataDate
-
+import sys
+from pathlib import Path
 from typing import List
-                                                                                                         
+
+from alive_progress import alive_bar
+
+from dataDate import ACTIVE_WARNINGS, DataDate
+from detectors import Detectors
+
 #                                                                                                         
 #     ,---,                   ___                    ,---,                   ___                           
 #   .'  .' `\               ,--.'|_                .'  .' `\               ,--.'|_                         
@@ -17,13 +21,21 @@ from typing import List
 # ;   :  .'   ;  :   .'   \ |  ,   /;  :   .'   \;   :  .'   ;  :   .'   \ |  ,   / |   :    |'--'.     /  
 # |   ,.'     |  ,     .-./  ---`-' |  ,     .-./|   ,.'     |  ,     .-./  ---`-'   \   \  /   `--'---'   
 # '---'        `--`---'              `--`---'    '---'        `--`---'                `----'               
-#                                                                                   *with python 3.8                                                                                                         
+#                                                                                   *with python 3.8       
 #
+
+ACTIVE_WARNINGS = False
 
 class DataDates:
     def __init__(self) -> None:
+        
         self._detectors = Detectors()
         self._datadates = {}
+        
+        parent_dir = Path(__file__).resolve().parents[1]
+        self.__RawData = parent_dir.joinpath('RawData')
+        self.__raw_l0_filenames = []
+        self.__warnings = { 1: [], 2: []}
 
     def __getitem__(self, id: str) -> DataDate:
         return self._datadates[id]
@@ -32,8 +44,69 @@ class DataDates:
         newDate = DataDate(date, self._detectors)
         self._datadates[date] = newDate
 
+    # function that gets all interesting dates in a year
+    
+
     # faster for loading more than one date
     def load_dates(self, dates: List[str]) -> None:
-        pass
 
-    # make animation function to animate multiple dates in one fig??
+        new_l0_filenames = []
+        for date in dates:
+            if date not in self._datadates:
+                self._datadates[date] = DataDate(date, self._detectors, man_load=True)
+
+                if (l0_filename := f'l0_10min_{date[:2]}.txt') not in new_l0_filenames:
+                    new_l0_filenames.append(l0_filename)
+                    self.__raw_l0_filenames.append(l0_filename)
+
+        for l0_filename in new_l0_filenames:
+            path = self.__RawData.joinpath(f'L0L1/{l0_filename}')
+            
+            with open(path, 'rb') as file:
+                file_lines = file.readlines()
+                file_length = len(file_lines)
+
+                with alive_bar(file_length, title=path.name, monitor=False, bar='classic', spinner='twirl') as bar:
+                    for line in file_lines:
+                        
+                        try:                            
+                            if (event_date := line.split()[0].decode('utf-8')) in dates:
+                                self._datadates[event_date].L0L1_parse(line, raw=True)
+                        except Exception as e:
+                            self._warn(2, f'{line}\n{e}')
+                        bar()
+                        
+        path = self.__RawData.joinpath(f'NLDN/Raw_NLDN.txt')
+        
+        with open(path, 'rb') as file:
+            file_lines = file.readlines()
+            file_length = len(file_lines)
+
+            with alive_bar(file_length, title=path.name, monitor=False, bar='classic', spinner='twirl') as bar:
+                for line in file_lines:
+                    try:
+                        dline = line[:10].decode('utf-8')
+                        if (event_date := f'{dline[2:4]}{dline[5:7]}{dline[8:10]}') in dates:
+                            self._datadates[event_date].NLDN_parse(line, raw=True)
+                    except Exception as e:
+                        self._warn(2, f'{line}\n{e}')
+                    bar()
+
+    def _warn(self, id: int, comments: str = '') -> None:
+        switcher = {
+            1: 'Critical Warning: ',
+            2: 'Parser could not parse date: ',
+        }
+        warning = switcher.get(id) + comments + '\n'
+        self.__warnings[id].append(warning)
+
+        if ACTIVE_WARNINGS or id == 1:
+            print(warning)
+    
+if __name__ == '__main__':
+    dates = DataDates()
+    dates.load_dates([ '080524', '080526'])
+    
+    for k, v in dates._datadates.items():
+        print(k)
+        print(v, ':', list(v.L0.items())[0], ':', v.NLDN[0])
