@@ -35,20 +35,34 @@ class DataDates:
         parent_dir = Path(__file__).resolve().parents[1]
         self.__RawData = parent_dir.joinpath('RawData')
         self.__raw_l0_filenames = []
-        self.__warnings = { 1: [], 2: []}
+        self.__warnings = {1: [], 2: []}
 
     def __getitem__(self, id: str) -> DataDate:
         return self._datadates[id]
+
 
     def newDataDate(self, date: str) -> None:
         newDate = DataDate(date, self._detectors)
         self._datadates[date] = newDate
 
-    # function that gets all interesting dates in a year
-    
+    # Function that gets all interesting dates in a year
+    def loadYear(self, year: str) -> None:
+        interesting_dates = []
+        
+        NLDN_file = self.__RawData / 'NLDN/Raw_NLDN.txt'
+        
+        with open(NLDN_file, 'r') as file:
+            for line in file.readlines():
+                event_date = line.split()[0]
+                event_date = f'{event_date[2:4]}{event_date[5:7]}{event_date[8:10]}'
+                
+                if (t := event_date) not in interesting_dates and (t[:2] == year[2:4]):
+                    interesting_dates.append(t)
+                
+        self.loadDates(interesting_dates)
 
-    # faster for loading more than one date
-    def load_dates(self, dates: List[str]) -> None:
+    # Faster for loading more than one date
+    def loadDates(self, dates: List[str]) -> None:
 
         new_l0_filenames = []
         for date in dates:
@@ -92,6 +106,10 @@ class DataDates:
                         self._warn(2, f'{line}\n{e}')
                     bar()
 
+    def saveDates(self) -> None:
+        for dataDate in self._datadates.values():
+            dataDate.save(defSure=True)
+
     def _warn(self, id: int, comments: str = '') -> None:
         switcher = {
             1: 'Critical Warning: ',
@@ -105,8 +123,9 @@ class DataDates:
     
 if __name__ == '__main__':
     dates = DataDates()
-    dates.load_dates([ '080524', '080526'])
+    dates.loadYear('2014')
+    
+    dates.saveDates()
     
     for k, v in dates._datadates.items():
-        print(k)
-        print(v, ':', list(v.L0.items())[0], ':', v.NLDN[0])
+        print(k, v)

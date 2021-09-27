@@ -242,6 +242,9 @@ class DataDate:
             imSure = (imSure == 'Y' or imSure == 'y')
 
         if defSure or imSure:
+            if not self._file.is_dir():
+                Path.mkdir(self._file)
+            
             L0L1_file = self._file / 'L0L1.txt'
             NLDN_file = self._file / 'NLDN.txt'
 

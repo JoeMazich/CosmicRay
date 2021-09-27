@@ -6,7 +6,7 @@ import geopy
 import numpy as np
 import terminaltables
 
-from taTools import gps2cart, ivanov2clf
+from taTools import clf2ivanov, gps2cart
 
 NLDN_events, TASD_events, camera_triggers = [], [], []
 
@@ -20,17 +20,17 @@ culled_NLDN_2_TASD = [['TASD time', 'TASD location', 'NLDN time', 'NLDN location
 culled_TASD_2_TASD = [['1st TASD time', '1st TASD location', '2nd TASD time', '2nd TASD location', 'Time delta', 'Distance delta']]
 
 NLDN_2_TASD_2_Cam = [['TASD time', 'NLDN time', 'Camera time', \
-        'Delta TASD and NLDN time', 'Delta TASD and Camera time', \
+        'Delta TASD and NLDN time (seconds)', 'Delta TASD and Camera time (seconds)', \
         'TASD location', 'NLDN location', 'Distance between TASD and NLDN (km)']]
 
 half_window_1 = dt.timedelta(milliseconds=500) # milliseconds = 500
 half_window_2 = dt.timedelta(milliseconds=1) # milliseconds = 1
-half_window_3 = dt.timedelta(seconds=6) # seconds = 1
-max_distance = 25
+half_window_3 = dt.timedelta(seconds=1) # seconds = 1
+max_distance = 30
 
-NLDN = Path(__file__).resolve().parent / 'data' / 'lightning-data-210911.csv'
-TASD = Path(__file__).resolve().parent / 'data' / 'SD210911.rtuple.txt'
-camera = Path(__file__).resolve().parent / 'data' / 'Camera.csv'
+NLDN = Path(__file__).resolve().parent / 'data' / 'nldn_20210818.csv'
+TASD = Path(__file__).resolve().parent / 'data' / 'SD210818.rtuple.txt'
+camera = Path(__file__).resolve().parent / 'data' / '21Aug18-19_HSV_INTF-raw-times.csv'
 out = Path(__file__).resolve().parent / 'out'
 
 
@@ -39,16 +39,22 @@ with open(NLDN, 'r') as file:
         
         if 'EventTime' not in line and ',' in line:
             split = line.split(',')
-            event_time = dt.datetime.strptime(split[0][:26], '%Y-%m-%dT%H:%M:%S.%f')
+            event_time = dt.datetime.strptime(split[0][1:27], '%Y-%m-%dT%H:%M:%S.%f')
             gps = geopy.point.Point(float(split[1]), float(split[2]), 0)
             x, y, z = gps2cart(gps)
-
+            
+            l, j = [x], [y]
+            clf2ivanov(l, j)
+            x = l[0]
+            y = j[0]
+            
             NLDN_events.append([event_time, (x, y)])
 
 with open(TASD, 'r') as file:
     for line in file:        
         event = dt.datetime.strptime(line[0:22], '%y%m%d %H %M %S.%f')
         x, y = [float(line.split()[7])], [float(line.split()[8])]
+    
         
         diff_array = abs(np.asarray([t[0] for t in NLDN_events]) - event)
         
@@ -63,7 +69,8 @@ with open(TASD, 'r') as file:
                         NLDN_events[i][1], delta, distance])
                     
                     NLDN_2_TASD_2_Cam.append([event.strftime('%H:%M:%S.%f'), NLDN_events[i][0].strftime('%H:%M:%S.%f'), \
-                        '', delta.total_seconds(), '', (x[0], y[0]), \
+                        '', delta.total_seconds(), '', \
+                        (float("{:.2f}".format(x[0])), (float("{:.2f}".format(y[0])))), \
                         (float("{:.2f}".format(NLDN_events[i][1][0])), \
                         float("{:.2f}".format(NLDN_events[i][1][1]))), \
                         "{:.2f}".format(distance)])
@@ -85,7 +92,7 @@ with open(camera, 'r') as file:
         if 'Flash' not in line:
             split = line.split(',')
             
-            camera_event = dt.datetime.strptime(split[1][1:23], '%Y%m%dH%H%M%S.%f')
+            camera_event = dt.datetime.strptime(split[0][1:23], '%Y%m%dH%H%M%S.%f')
             
             diff_array = abs(np.asarray([t[0] for t in TASD_events]) - camera_event)
             for i, delta in enumerate(diff_array):
@@ -161,7 +168,7 @@ NLDN_2_TASD_2_Cam = terminaltables.AsciiTable(NLDN_2_TASD_2_Cam)
 print(NLDN_2_TASD_2_Cam.table)
 
 with open(out / 'NLDN_2_TASD_2_Cam.txt', 'w') as file:
-    file.write(f'2021-09-11\n')
-    file.write(f'Comparing NLDN to TASD within {half_window_1.total_seconds()} seconds and {max_distance} km\n')
+    file.write(f'2021-09-12\n')
+    file.write(f'Comparing NLDN to TASD within {half_window_1.total_seconds()} seconds\n')
     file.write(f'Comparing TASD to Camera within {half_window_3.total_seconds()} seconds\n')
     file.write(NLDN_2_TASD_2_Cam.table)
