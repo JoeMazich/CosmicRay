@@ -271,7 +271,7 @@ class DataDate:
                         file.write(f'{v}\n')
 
     # Todo: Make this more dynamic - choose what goes where for example
-    def animate(self) -> None:
+    def animate(self, view=True) -> None:
 
         def update(frame: int) -> None:
             this_time = self.date + TEN_MINS * frame
@@ -381,7 +381,8 @@ class DataDate:
 
         anim = animation.FuncAnimation(fig, update, interval=ANI_SPEED, blit=True, repeat=True, frames=144)
 
-        plt.show()
+        if view:
+            plt.show()
         
         save_path = Path(__file__).resolve().parents[1] / 'Movies' / self.date.strftime('%y%m%d')
         
@@ -390,15 +391,18 @@ class DataDate:
 
         file = str(self.date.date()) + '.mov'
         
-        print()
-        save_movie = input('Save this movie? (Y/n): ')
-        answers = ['Y', 'y', 'N', 'n']
-        while save_movie not in answers:
-            save_movie = input('Invalid response (Y/N): ')
+        if view:  
+            print()
+            save_movie = input('Save this movie? (Y/n): ')
+            answers = ['Y', 'y', 'N', 'n']
+            while save_movie not in answers:
+                save_movie = input('Invalid response (Y/N): ')
             
-        if save_movie == 'Y' or save_movie == 'y':
+        if not view or save_movie == 'Y' or save_movie == 'y':
             writer_video = animation.FFMpegWriter(fps=2) 
             anim.save(save_path / file, writer=writer_video)
+        
+        plt.close()
 
     # Simple loading, parser should return True if/when it can tell it is done
     def _load_bytes(self, path: Path, parser: Callable[[str], None], raw: bool = False) -> None:

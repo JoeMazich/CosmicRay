@@ -110,6 +110,13 @@ class DataDates:
         for dataDate in self._datadates.values():
             dataDate.save(defSure=True)
 
+    def saveMovies(self) -> None:
+        length = len(self._datadates)
+        with alive_bar(length, title='Saving', monitor=False, bar='classic', spinner='twirl') as bar:
+            for dataDate in self._datadates.values():
+                dataDate.animate(view=False)
+                bar()
+
     def _warn(self, id: int, comments: str = '') -> None:
         switcher = {
             1: 'Critical Warning: ',
@@ -126,6 +133,8 @@ if __name__ == '__main__':
     dates.loadYear('2014')
     
     dates.saveDates()
+    
+    dates.saveMovies()
     
     for k, v in dates._datadates.items():
         print(k, v)
