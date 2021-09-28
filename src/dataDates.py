@@ -45,6 +45,17 @@ class DataDates:
         newDate = DataDate(date, self._detectors)
         self._datadates[date] = newDate
 
+    # Goto Function for loading and saving a whole year
+    def loadAndSaveYear(self, year: str) -> None:
+        self.loadYear(year)
+        length = len(self._datadates)
+        with alive_bar(length, title='Processing Dates', monitor=False, bar='classic', spinner='twirl') as bar:
+            for dataDate in self._datadates.values():
+                dataDate.findRates()
+                dataDate.save(defSure=True)
+                dataDate.animate(view=False)
+                bar()
+
     # Function that gets all interesting dates in a year
     def loadYear(self, year: str) -> None:
         interesting_dates = []
@@ -107,14 +118,24 @@ class DataDates:
                     bar()
 
     def saveDates(self) -> None:
-        for dataDate in self._datadates.values():
-            dataDate.save(defSure=True)
+        length = len(self._datadates)
+        with alive_bar(length, title='Saving Dates', monitor=False, bar='classic', spinner='twirl') as bar:
+            for dataDate in self._datadates.values():
+                dataDate.save(defSure=True)
+                bar()
 
     def saveMovies(self) -> None:
         length = len(self._datadates)
-        with alive_bar(length, title='Saving', monitor=False, bar='classic', spinner='twirl') as bar:
+        with alive_bar(length, title='Saving Movies', monitor=False, bar='classic', spinner='twirl') as bar:
             for dataDate in self._datadates.values():
                 dataDate.animate(view=False)
+                bar()
+    
+    def findRates(self) -> None:
+        length = len(self._datadates)
+        with alive_bar(length, title='Finding Rates', monitor=False, bar='classic', spinner='twirl') as bar:
+            for dataDate in self._datadates.values():
+                dataDate.findRates()
                 bar()
 
     def _warn(self, id: int, comments: str = '') -> None:
@@ -130,11 +151,4 @@ class DataDates:
     
 if __name__ == '__main__':
     dates = DataDates()
-    dates.loadYear('2014')
-    
-    dates.saveDates()
-    
-    dates.saveMovies()
-    
-    for k, v in dates._datadates.items():
-        print(k, v)
+    dates.loadAndSaveYear('2014')
