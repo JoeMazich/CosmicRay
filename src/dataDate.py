@@ -19,7 +19,7 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import FileHistory
 
 from detectors import Detectors
-from taTools import *
+from TA.taTools import gps2cart
 
 #%%
 
@@ -44,7 +44,7 @@ from taTools import *
 
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
-ACTIVE_WARNINGS = False
+ACTIVE_WARNINGS = True
 
 TEN_MINS = dt.timedelta(minutes=10)
 TWO_HOURS = dt.timedelta(hours=2)
@@ -59,7 +59,7 @@ ANI_SPEED = 900
 
 TIME_NLDN_IS_ON = dt.timedelta(minutes=20)
 
-@dataclass(frozen=True) # key object used to get Lv0 data
+@dataclass(frozen=True) # Key object used to get Lv0 data
 class KeyLv0:
     event_datetime: dt.datetime
     det_num: str
@@ -68,7 +68,12 @@ class KeyLv0:
         edt = self.event_datetime.strftime('%y%m%d %H%M%S')
         return f'{edt} {self.det_num}'
 
-@dataclass # value object to hold the helpful Lv0 data
+    def __eq__(self, other: any) -> bool:
+        if self.event_datetime == other.event_datetime and self.det_num == other.det_num:
+            return True
+        return False
+
+@dataclass # Value object to hold the helpful Lv0 data
 class ValLv0:
     lv0: float
     lv1: float
@@ -94,10 +99,14 @@ class NLDN:
         edt = self.event_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
         return f'{edt} {self.ll_position[0]} {self.ll_position[1]} {self.peak_current} {self.type} {self.cc_position[0]} {self.cc_position[1]}'
 
+def construct_key(k_date: dt.date, k_time: dt.time, detector_number: str) -> KeyLv0:
+    event_datetime = dt.datetime.combine(k_date.date(), k_time.time())
+    return KeyLv0(event_datetime, detector_number)
+
 #%%
 
 class DataDate:
-    
+
     def __init__(self, date: str, detectors: Detectors, man_load = False) -> None:
 
         try:
@@ -110,16 +119,22 @@ class DataDate:
         self.NLDN = []
 
         parent_dir = Path(__file__).resolve().parents[1]
-        self._file = parent_dir.joinpath(f'DataDates/{date}')
+        self._file = parent_dir.joinpath(f'Data/{date}')
         self._detectors = detectors
             
         self.__warnings = { 1: [], 2: [], 3: [], 4: [], 10: [], 11: [], 20: [], 21: []}
 
+        L0L1_file = self._file / 'L0L1.txt'
+        NLDN_file = self._file / 'NLDN.txt'
+        
+        have_L0L1 = L0L1_file.is_file()
+        have_NLDN = NLDN_file.is_file()
+
         # Load everything needed - assuming there will be rates already there
-        if self._file.is_dir() and not man_load:
-            L0L1_file = self._file / 'L0L1.txt'
-            NLDN_file = self._file / 'NLDN.txt'
-            
+        if self._file.is_dir() and have_L0L1 and have_NLDN and not man_load:
+
+            print(f'Loading {date}')
+
             start = time.perf_counter()
             self._load_bytes(L0L1_file, self.L0L1_parse)
             stop = time.perf_counter()
@@ -134,11 +149,15 @@ class DataDate:
 
         # Split raw data, load the splitted data, make the rates, save the total data, delete the splitted data
         elif not man_load:
-            self._warn(2, f'{self._file}, making a new one')
-            Path.mkdir(self._file)
+
+            print(f'Loading {date} from Raw')
+
+            if not self._file.is_dir():
+                self._warn(2, f'{self._file}, making a new one')
+                Path.mkdir(self._file)
             
             start = time.perf_counter()
-            self.parseAndLoadFromRaw()
+            self.parseAndLoadFromRaw((not have_L0L1), (not have_NLDN))
             stop = time.perf_counter()
             parseAllRaw_timing = (stop - start)
 
@@ -148,11 +167,23 @@ class DataDate:
             findRates_timing = (stop - start)
 
             start = time.perf_counter()
-            self.save(defSure=True)
+            self.save(True, (not have_L0L1), (not have_NLDN))
             stop = time.perf_counter()
             save_timing = (stop - start)
 
             #print(f'Parsing from raw data took: {parseAllRaw_timing} seconds\nFinding the Rates took: {findRates_timing} seconds\nSaving took: {save_timing} seconds')
+
+            if (have_L0L1):
+                start = time.perf_counter()
+                self._load_bytes(L0L1_file, self.L0L1_parse)
+                stop = time.perf_counter()
+                load_L0L1_timing = (stop - start)
+
+            elif (have_NLDN):
+                start = time.perf_counter()
+                self._load_bytes(NLDN_file, self.NLDN_parse)
+                stop = time.perf_counter()
+                load_NLDN_timing = (stop - start)
 
     def __str__(self) -> str:
         this_date = self.date.strftime('%Y-%m-%d')
@@ -162,19 +193,18 @@ class DataDate:
         # Number of points we have in the dataset for the day
         return len(self.L0)
 
-    def __getitem__(self, id: KeyLv0) -> float:
+    def __getitem__(self, id: KeyLv0) -> ValLv0:
         # Retrieve a data based on time and detector
         try:
             return self.L0[id]
 
         except KeyError:
-            time = id[0].strftime('%Y-%m-%d %H:%M:%S')
-            detector = id[1]
+            time = id.event_datetime.strftime('%Y-%m-%d %H:%M:%S')
+            detector = id.det_num
             date = self.date.strftime('%Y-%m-%d')
 
             self._warn(3, (f'({time = }, {detector = }) key in {date} data'))
             return None
-
 
     # Cut through the large data files over time and save relevant data in self.L0 and self.NLDN
     # WILL NOT SAVE FILES, WILL ERASE CURRENT self.L0 and self.NLDN
@@ -383,9 +413,9 @@ class DataDate:
 
         if view:
             plt.show()
-        
-        save_path = Path(__file__).resolve().parents[1] / 'Movies' / self.date.strftime('%y%m%d')
-        
+
+        save_path = Path(__file__).resolve().parents[1] / 'Plots/Movies' / self.date.strftime('%y%m%d')
+
         if not save_path.is_dir():
             Path.mkdir(save_path)
 
@@ -397,11 +427,11 @@ class DataDate:
             answers = ['Y', 'y', 'N', 'n']
             while save_movie not in answers:
                 save_movie = input('Invalid response (Y/N): ')
-            
+
         if not view or save_movie == 'Y' or save_movie == 'y':
             writer_video = animation.FFMpegWriter(fps=2) 
             anim.save(save_path / file, writer=writer_video)
-        
+
         plt.close()
 
     # Simple loading, parser should return True if/when it can tell it is done
@@ -486,7 +516,7 @@ class DataDate:
 
         except Exception as e:
             self._warn(4, f'{line}\n{e}\n')
-        return False        
+        return False
 
 
     def _warn(self, id: int, comments: str = '') -> None:
@@ -509,6 +539,8 @@ class DataDate:
 #%%
 
 if __name__ == '__main__':
+
+    # For testing purposes only
     day = DataDate(input('What date? '), Detectors())
     
     command_completer = WordCompleter(['exit', 'findRates', 'animate', 'loadRaw', 'save', 'clear', 'printl0', 'printNLDN', 'loadRaw TASD', 'loadRaw NLDN', 'findNLDNcoors'])

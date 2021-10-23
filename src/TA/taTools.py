@@ -1,8 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import pylab
 import geopy
+import numpy as np
 from geopy.distance import geodesic
+from pathlib import Path
 
 ###################
 # global parameters
@@ -47,8 +46,7 @@ def tasdxyz(tasdnum1,tasdx,tasdy,tasdz):
 ###############################
 
 # read sd locations from file
-
-    ff=open('tasd_gpscoors.txt','r')
+    ff=open(Path(__file__).resolve().parent / 'tasd_gpscoors.txt','r')
     tasdnum = []
     tasdlat = []
     tasdlon = []
@@ -81,7 +79,7 @@ def tasdgps(tasdlat,tasdlon,tasdalt):
 
 # read sd locations from file
 
-    ff=open('tasd_gpscoors.txt','r')
+    ff=open(Path(__file__).resolve().parent / 'tasd_gpscoors.txt','r')
     tasdnum = []
 
     for line in ff:
@@ -107,5 +105,3 @@ def clf2ivanov(x,y):
 
     x[:] = [(xx/1.200+12.2435) for xx in x]
     y[:] = [(yy/1.200+16.4406) for yy in y]
-
-#

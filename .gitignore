@@ -1,7 +1,7 @@
-DataDates/*
-Movies/*
-RawData/*
-Supp/*
-temp/*
+Data
+Plots
+RawData
+Supp
+temp
 
 **/history.txt

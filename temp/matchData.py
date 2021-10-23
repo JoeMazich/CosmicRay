@@ -28,9 +28,9 @@ half_window_2 = dt.timedelta(milliseconds=1) # milliseconds = 1
 half_window_3 = dt.timedelta(seconds=1) # seconds = 1
 max_distance = 30
 
-NLDN = Path(__file__).resolve().parent / 'data' / 'lightning-data-210911.csv'
-TASD = Path(__file__).resolve().parent / 'data' / 'SD210911.rtuple.txt'
-camera = Path(__file__).resolve().parent / 'data' / 'Camera.csv'
+NLDN = Path(__file__).resolve().parent / 'data' / 'nldn_20210929.csv'
+TASD = Path(__file__).resolve().parent / 'data' / 'SD210929.rtuple.txt'
+camera = Path(__file__).resolve().parent / 'data' / 'Camera210928-210929.txt'
 out = Path(__file__).resolve().parent / 'out'
 
 
@@ -39,7 +39,7 @@ with open(NLDN, 'r') as file:
         
         if 'EventTime' not in line and ',' in line:
             split = line.split(',')
-            event_time = dt.datetime.strptime(split[0][0:26], '%Y-%m-%dT%H:%M:%S.%f')
+            event_time = dt.datetime.strptime(split[0][1:27], '%Y-%m-%dT%H:%M:%S.%f')
             gps = geopy.point.Point(float(split[1]), float(split[2]), 0)
             x_l, y_l, z = gps2cart(gps)
             
@@ -94,7 +94,7 @@ with open(camera, 'r') as file:
         if 'Flash' not in line:
             split = line.split(',')
             
-            camera_event = dt.datetime.strptime(split[1][1:23], '%Y%m%dH%H%M%S.%f')
+            camera_event = dt.datetime.strptime(line[1:23], '%Y%m%dH%H%M%S.%f') #split[1][1:23]
             
             diff_array = abs(np.asarray([t[0] for t in TASD_events]) - camera_event)
             for i, delta in enumerate(diff_array):

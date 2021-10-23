@@ -1,11 +1,10 @@
-import sys
 from pathlib import Path
 from typing import List
 
 from alive_progress import alive_bar
 
-from dataDate import ACTIVE_WARNINGS, DataDate
-from detectors import Detectors
+from .dataDate import DataDate
+from .detectors import Detectors
 
 #                                                                                                         
 #     ,---,                   ___                    ,---,                   ___                           
@@ -38,8 +37,13 @@ class DataDates:
         self.__warnings = {1: [], 2: []}
 
     def __getitem__(self, id: str) -> DataDate:
-        return self._datadates[id]
-
+        try:
+            return self._datadates[id]
+        except KeyError:
+            print('Key error on DataDates obj - error not properly implemented yet')
+    
+    def keys(self) -> List[str]:
+        return self._datadates.keys()
 
     def newDataDate(self, date: str) -> None:
         newDate = DataDate(date, self._detectors)
@@ -47,6 +51,7 @@ class DataDates:
 
     # Goto Function for loading and saving a whole year
     def loadAndSaveYear(self, year: str) -> None:
+        print(f'Loading {year}')
         self.loadYear(year)
         length = len(self._datadates)
         with alive_bar(length, title='Processing Dates', monitor=False, bar='classic', spinner='twirl') as bar:
@@ -69,7 +74,7 @@ class DataDates:
                 
                 if (t := event_date) not in interesting_dates and (t[:2] == year[2:4]):
                     interesting_dates.append(t)
-                
+
         self.loadDates(interesting_dates)
 
     # Faster for loading more than one date
@@ -130,7 +135,7 @@ class DataDates:
             for dataDate in self._datadates.values():
                 dataDate.animate(view=False)
                 bar()
-    
+
     def findRates(self) -> None:
         length = len(self._datadates)
         with alive_bar(length, title='Finding Rates', monitor=False, bar='classic', spinner='twirl') as bar:
@@ -148,7 +153,12 @@ class DataDates:
 
         if ACTIVE_WARNINGS or id == 1:
             print(warning)
-    
+
+
 if __name__ == '__main__':
+
+    # For testing purposes only
     dates = DataDates()
     dates.loadAndSaveYear('2014')
+
+    dates.saveMovies()

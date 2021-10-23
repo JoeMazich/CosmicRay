@@ -1,10 +1,13 @@
-import geopy as gp
 import codecs
-from dataclasses import dataclass
-from typing import Tuple
-from taTools import *
-
 import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Tuple
+
+import geopy as gp
+
+from TA.taTools import gps2cart, tasdxyz
+
 
 @dataclass
 class Detector():
@@ -20,7 +23,7 @@ class Detectors():
         
         tasdxyz([],self.tasdx,self.tasdy,[])
 
-        with codecs.open('tasd_gpscoors.txt', 'rb',  'utf-8') as file: 
+        with codecs.open(Path(__file__).resolve().parent / 'TA/tasd_gpscoors.txt', 'rb', 'utf-8') as file: 
             for line in file.readlines():
 
                 det, lat, long, alt = line.split()
