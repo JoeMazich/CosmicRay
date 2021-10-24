@@ -41,7 +41,7 @@ class DataDatePrompt:
 
         while True:
             user_input = prompt(u'/> ',
-                                history=FileHistory('src\history.txt'),
+                                history=FileHistory('history.txt'),
                                 auto_suggest=AutoSuggestFromHistory(),
                                 ).split()
 
