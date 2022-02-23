@@ -1,8 +1,9 @@
 import codecs
+import math
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, List, Tuple
 
 import geopy as gp
 
@@ -34,9 +35,30 @@ class Detectors():
 
     def __getitem__(self, id: str) -> Detector:
         return self._detectors[id]
-    
+
     def getCart(self, id:str) -> Tuple[float, float]:
         return self._detectors[id].detector_cart_position
+
+    def getAllDets(self) -> List[str]:
+        return [detector for detector in self._detectors]
+
+
+def NearDets(det_num, size, centered) -> Dict:
+    det_num = int(det_num)
+    dict = {}
+
+    if centered:
+        l = math.floor((size/2) - .5)
+        for _ in range(l):
+            det_num -= 99
+
+    for n in range(size):
+        temp_det_num = det_num
+        for m in range(size):
+            dict[(n, m)] = str(temp_det_num).rjust(4, "0")
+            temp_det_num += 100
+        det_num -= 1
+    return dict
 
 if __name__ == '__main__':
     start = time.perf_counter()

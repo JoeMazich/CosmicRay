@@ -44,7 +44,7 @@ from TA.taTools import gps2cart
 
 TAKE_OUT_DONTUSE = True
 TAKE_OUT_WARN = True
-ACTIVE_WARNINGS = True
+ACTIVE_WARNINGS = False
 
 TEN_MINS = dt.timedelta(minutes=10)
 TWO_HOURS = dt.timedelta(hours=2)
@@ -55,7 +55,7 @@ CMAP_BOUNDS_TASD = [-5, -3, -1, -0.5, 0.5, 1, 3, 5] # set the bounds for the col
 CMAP_COLORS_TEMP = ['#fc00b6', '#8e0da8', '#0021ff', 'cyan', 'green', 'orange', 'red', '#b60909', '#530028']
 CMAP_BOUNDS_TEMP = [-30, -5, -3, -1, -0.5, 0.5, 1, 3, 5, 30] # set the bounds for the colors on the 2D map / default is [-30, -5, -3, -1, -0.5, 0.5, 1, 3, 5, 30]
 
-ANI_SPEED = 900
+ANI_SPEED = 1000
 
 TIME_NLDN_IS_ON = dt.timedelta(minutes=20)
 
@@ -63,7 +63,7 @@ TIME_NLDN_IS_ON = dt.timedelta(minutes=20)
 class KeyLv0:
     event_datetime: dt.datetime
     det_num: str
-    
+
     def __str__(self) -> str:
         edt = self.event_datetime.strftime('%y%m%d %H%M%S')
         return f'{edt} {self.det_num}'

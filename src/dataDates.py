@@ -27,10 +27,11 @@ ACTIVE_WARNINGS = False
 
 class DataDates:
     def __init__(self) -> None:
-        
-        self._detectors = Detectors()
+
+        self.detectors = Detectors()
+
         self._datadates = {}
-        
+
         parent_dir = Path(__file__).resolve().parents[1]
         self.__RawData = parent_dir.joinpath('RawData')
         self.__raw_l0_filenames = []
@@ -41,12 +42,12 @@ class DataDates:
             return self._datadates[id]
         except KeyError:
             print('Key error on DataDates obj - error not properly implemented yet')
-    
+
     def keys(self) -> List[str]:
         return self._datadates.keys()
 
     def newDataDate(self, date: str) -> None:
-        newDate = DataDate(date, self._detectors)
+        newDate = DataDate(date, self.detectors)
         self._datadates[date] = newDate
 
     # Goto Function for loading and saving a whole year
@@ -83,7 +84,7 @@ class DataDates:
         new_l0_filenames = []
         for date in dates:
             if date not in self._datadates:
-                self._datadates[date] = DataDate(date, self._detectors, man_load=True)
+                self._datadates[date] = DataDate(date, self.detectors, man_load=True)
 
                 if (l0_filename := f'l0_10min_{date[:2]}.txt') not in new_l0_filenames:
                     new_l0_filenames.append(l0_filename)

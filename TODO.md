@@ -17,3 +17,5 @@
 - loadDates command in CRAT
   - Employ the loadDates function in dataDates, just need to configure input to be of type list
 - Maybe split the animate function in dataDates to getData and animateData like OneDimension plots
+- Add back Hans plots
+- L0 vs T plots
